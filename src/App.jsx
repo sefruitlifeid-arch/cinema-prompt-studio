@@ -11,7 +11,7 @@ import {
   PRODUCT_OUTPUTS, SHEET_ANGLES, MATERIALS, PRODUCT_LIGHTING, PRODUCT_BG, PRODUCT_ANGLE,
   ASPECTS, THUMB_LAYOUTS, COLOR_TREATMENTS, RENDER_STYLES, TEXT_STYLES, FONT_STYLE_CHIPS, THUMB_TYPES,
   EMPTY_BRAND,
-  CHARMAKER_OUTPUTS, CHARMAKER_VIEWS, CHARMAKER_EXPRESSIONS_9,
+  CHARMAKER_OUTPUTS, CHARMAKER_VIEWS, CHARMAKER_EXPRESSIONS_9, CHARMAKER_OUTFIT_PANELS, IDENTITY_PLATE_CLAUSE,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
   STYLE_VIBES,
 } from "./constants/data";
@@ -171,6 +171,9 @@ export default function CinemaPromptStudio() {
   const [cmAntiAI, setCmAntiAI] = useState(true);
   const [cmSavingOpen, setCmSavingOpen] = useState(false);
   const [cmName, setCmName] = useState("");
+  const [cmSource, setCmSource] = useState("scratch");
+  const [cmExOpen, setCmExOpen] = useState(false);
+  const [cmExCopied, setCmExCopied] = useState(false);
 
   useEffect(() => {
     setPresets(store.read(PRESET_KEY));
@@ -376,22 +379,67 @@ export default function CinemaPromptStudio() {
   const characterPrompt = useMemo(() => {
     if (!cmIdentityText.trim()) return null;
     const identity = cmIdentityText.trim().replace(/\.+$/, "");
-    const bg = CM_BACKGROUNDS.find((b) => b.id === cmBg);
-    const light = CM_LIGHTS.find((l) => l.id === cmLight);
-    const bgPhrase = bg ? bg.phrase : "a clean dark seamless studio backdrop";
-    const lightPhrase = light ? light.phrase : "clamshell soft-box lighting with a bright key from above and a reflector fill below";
     const realismParts = [];
     if (cmSkinTexture) realismParts.push("real skin texture — visible pores, fine hairs, subtle sebaceous variation");
     if (cmAntiAI) realismParts.push("Photographic image. Real photograph. No AI artifacts, no plastic skin, no uncanny valley.");
     const realismStack = realismParts.join(" ");
+
+    // Hero and expressions: locked neutral presentation
+    if (cmOutput === "hero") {
+      return [
+        `A neutral identity reference plate of ${identity}, ${IDENTITY_PLATE_CLAUSE}.`,
+        "Neutral relaxed expression, looking directly at camera.",
+        "Soft even studio lighting, a mid-grey seamless studio backdrop. Chest-up portrait, camera at eye level.",
+        realismStack,
+      ].filter(Boolean).join(" ");
+    }
+
+    if (cmOutput === "expressions") {
+      return [
+        `Create a character expression reference sheet as ONE single image: a 3×3 grid of 9 panels. All panels show the exact same character — ${identity}, ${IDENTITY_PLATE_CLAUSE} — from the same chest-up angle with identical soft even studio lighting and a mid-grey seamless studio backdrop.`,
+        `Expressions (label each panel): ${CHARMAKER_EXPRESSIONS_9.map((e, i) => `[${i + 1}] ${e.label}: ${e.phrase}`).join("; ")}.`,
+        "The face and identity must be absolutely consistent across all 9 panels — same bone structure, skin, hair, and features. Only the expression changes.",
+        realismStack,
+      ].filter(Boolean).join(" ");
+    }
+
+    // Other outputs: user-controlled bg/light/outfit
+    const bg = CM_BACKGROUNDS.find((b) => b.id === cmBg);
+    const light = CM_LIGHTS.find((l) => l.id === cmLight);
+    const bgPhrase = bg ? bg.phrase : "a clean dark seamless studio backdrop";
+    const lightPhrase = light ? light.phrase : "clamshell soft-box lighting with a bright key from above and a reflector fill below";
     const vibeObj = STYLE_VIBES.find((v) => v.id === cmVibe);
     const outfitLine = [vibeObj ? vibeObj.phrase : "", cmOutfit.trim()].filter(Boolean).join(", ");
 
     if (cmOutput === "sheet") {
       return [
-        `Create a character identity reference sheet as ONE single image: a clean 2×2 grid. Top-left: a chest-up portrait of ${identity}. Top-right: a tight close crop of the eyes and brows. Bottom-left: a profile close-up showing the face from the side. Bottom-right: a hair close-up showing color, texture and volume.`,
+        `Create a character reference sheet as ONE single image: a clean 3×2 grid showing the exact same person — ${identity} — in six panels: [1] straight-on front view; [2] front-left three-quarter view; [3] right profile view; [4] straight back view; [5] neutral face close-up from the chest up; [6] full-body view.`,
         outfitLine ? `The character wears ${outfitLine}.` : "",
-        `All cells: ${lightPhrase}, ${bgPhrase}. Consistent identity, lighting and color temperature across all four cells — this is a consistency reference, not four different people.`,
+        `All panels: ${lightPhrase}, ${bgPhrase}. Consistent identity, clothing, lighting and color temperature across all six panels.`,
+        realismStack,
+      ].filter(Boolean).join(" ");
+    }
+
+    if (cmOutput === "fullbody") {
+      if (!cmOutfit.trim()) return null;
+      return [
+        `A professional head-to-toe full-body photograph of ${identity}.`,
+        `Wearing ${outfitLine}.`,
+        `${lightPhrase}, ${bgPhrase}.`,
+        "The full outfit is visible from head to toe in a natural standing pose, full-length frame.",
+        realismStack,
+      ].filter(Boolean).join(" ");
+    }
+
+    if (cmOutput === "outfitsheet") {
+      if (!cmOutfit.trim()) return null;
+      const panels = CHARMAKER_OUTFIT_PANELS.map((p, i) => `[${i + 1}] ${p}`).join("; ");
+      return [
+        `Create an outfit reference sheet as ONE single image: a clean 3-panel horizontal grid of the exact same person — ${identity} — wearing ${outfitLine}.`,
+        `Panels: ${panels}.`,
+        "The clothing, fabric, colors and details must be pixel-consistent across all panels.",
+        "The face appears ONLY in the third anchor panel so downstream video tools take identity from that single face.",
+        `${lightPhrase}, ${bgPhrase}. Thin neutral dividers between panels.`,
         realismStack,
       ].filter(Boolean).join(" ");
     }
@@ -402,21 +450,7 @@ export default function CinemaPromptStudio() {
       ).join("\n\n");
     }
 
-    if (cmOutput === "expressions") {
-      return [
-        `Create a character expression reference sheet as ONE single image: a 3×3 grid of 9 panels. All panels show the exact same character — ${identity} — from the same chest-up angle with identical ${lightPhrase} and ${bgPhrase}.`,
-        `Expressions (label each panel): ${CHARMAKER_EXPRESSIONS_9.map((e, i) => `[${i + 1}] ${e.label}: ${e.phrase}`).join("; ")}.`,
-        "The face and identity must be absolutely consistent across all 9 panels — same bone structure, skin, hair, and features. Only the expression changes.",
-        realismStack,
-      ].filter(Boolean).join(" ");
-    }
-
-    return [
-      `A character portrait of ${identity}.`,
-      outfitLine ? `The character wears ${outfitLine}.` : "",
-      `${lightPhrase}, ${bgPhrase}. Chest-up portrait, camera at eye level.`,
-      realismStack,
-    ].filter(Boolean).join(" ");
+    return null;
   }, [cmOutput, cmIdentityText, cmBg, cmLight, cmSkinTexture, cmAntiAI, cmVibe, cmOutfit]);
 
   const contextClause = creativeContext && contextType ? contextType.phrase : "";
@@ -444,7 +478,7 @@ export default function CinemaPromptStudio() {
     designRef, brandFontField, thumbTypeId, textBlocks,
     assembleCharId, assembleProdId, assembleLocId, assembleDirection, assembleAspectId, assemblePx, assemblePy, assembleDist,
     cmOutput, cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild,
-    cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmBg, cmLight, cmSkinTexture, cmAntiAI,
+    cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmBg, cmLight, cmSkinTexture, cmAntiAI, cmSource,
   });
 
   const restore = (d) => {
@@ -475,7 +509,7 @@ export default function CinemaPromptStudio() {
       cmHairLength: setCmHairLength, cmHairTexture: setCmHairTexture, cmBuild: setCmBuild,
       cmMarks: setCmMarks, cmIdentityText: setCmIdentityText, cmIdentityDirty: setCmIdentityDirty,
       cmOutfit: setCmOutfit, cmVibe: setCmVibe, cmBg: setCmBg, cmLight: setCmLight,
-      cmSkinTexture: setCmSkinTexture, cmAntiAI: setCmAntiAI,
+      cmSkinTexture: setCmSkinTexture, cmAntiAI: setCmAntiAI, cmSource: setCmSource,
     };
     Object.entries(d).forEach(([k, v]) => { if (setters[k]) setters[k](v); });
   };
@@ -600,11 +634,11 @@ export default function CinemaPromptStudio() {
   };
 
   useEffect(() => {
-    if (cmIdentityDirty) return;
+    if (cmIdentityDirty || cmSource !== "scratch") return;
     if (!cmAge && !cmGender && !cmSkin && !cmFace && !cmEyes && !cmHairColor && !cmHairLength && !cmHairTexture && !cmBuild && !cmMarks.trim()) return;
     setCmIdentityText(buildIdentityFromChips());
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild, cmMarks, cmIdentityDirty]);
+  }, [cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild, cmMarks, cmIdentityDirty, cmSource]);
 
   const updateBlock = (i, patch) => {
     setTextBlocks((prev) => prev.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
@@ -1413,94 +1447,137 @@ export default function CinemaPromptStudio() {
             {mode === "charmaker" && (<>
             <Panel>
               <Eyebrow>01 — Output Type</Eyebrow>
-              <div className="flex flex-wrap mb-2">
-                {CHARMAKER_OUTPUTS.map((o) => <Chip key={o.id} active={cmOutput === o.id} onClick={() => setCmOutput(o.id)} title={o.desc}>{o.label}</Chip>)}
+              <div className="relative mb-2">
+                <select
+                  value={cmOutput}
+                  onChange={(e) => setCmOutput(e.target.value)}
+                  className="w-full rounded p-2.5 text-sm pr-8"
+                  style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}
+                >
+                  {CHARMAKER_OUTPUTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                </select>
+                <ChevronDown size={14} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: COLORS.steel, pointerEvents: "none" }} />
               </div>
               <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>{CHARMAKER_OUTPUTS.find((o) => o.id === cmOutput).desc}</p>
             </Panel>
 
             <Panel>
-              <div className="flex items-center gap-2 mb-1">
-                <Eyebrow>02 — Identity Builder</Eyebrow>
-                {cmIdentityDirty && <span className="text-xs px-1.5 py-0.5 rounded mb-3" style={{ fontFamily: fMono, color: COLORS.console, backgroundColor: COLORS.amberDim, fontSize: 9, fontWeight: 700 }}>MANUAL</span>}
-              </div>
-              <div className="text-xs mb-3" style={{ fontFamily: fBody, color: COLORS.steel }}>Pick traits — identity paragraph auto-compiles below. Edit the text directly to lock it in manual mode.</div>
+              <Eyebrow>02 — Identity</Eyebrow>
 
-              <div className="mb-3">
-                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Gender</div>
-                <div className="flex flex-wrap">
-                  {ID_GENDER.map((g) => <Chip key={g.id} active={cmGender === g.id} onClick={() => setCmGender(cmGender === g.id ? "" : g.id)}>{g.label}</Chip>)}
-                </div>
+              {/* Source toggle */}
+              <div className="flex gap-2 mb-4">
+                {[
+                  { id: "scratch", label: "Build from scratch" },
+                  { id: "extract", label: "Extract from photo" },
+                ].map((s) => (
+                  <Chip key={s.id} active={cmSource === s.id} onClick={() => setCmSource(s.id)}>{s.label}</Chip>
+                ))}
               </div>
-              <div className="mb-3">
-                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Age</div>
-                <div className="flex flex-wrap">
-                  {ID_AGE.map((a) => <Chip key={a.id} active={cmAge === a.id} onClick={() => setCmAge(cmAge === a.id ? "" : a.id)}>{a.label}</Chip>)}
-                </div>
-              </div>
-              <div className="mb-3">
-                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Skin tone</div>
-                <div className="flex flex-wrap">
-                  {ID_SKIN.map((s) => <Chip key={s.id} active={cmSkin === s.id} onClick={() => setCmSkin(cmSkin === s.id ? "" : s.id)}>{s.label}</Chip>)}
-                </div>
-              </div>
-              <div className="mb-3">
-                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Face shape</div>
-                <div className="flex flex-wrap">
-                  {ID_FACE.map((f) => <Chip key={f.id} active={cmFace === f.id} onClick={() => setCmFace(cmFace === f.id ? "" : f.id)}>{f.label}</Chip>)}
-                </div>
-              </div>
-              <div className="mb-3">
-                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Eye shape</div>
-                <div className="flex flex-wrap">
-                  {ID_EYES.map((e) => <Chip key={e.id} active={cmEyes === e.id} onClick={() => setCmEyes(cmEyes === e.id ? "" : e.id)}>{e.label}</Chip>)}
-                </div>
-              </div>
-              <div className="mb-3">
-                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Hair color</div>
-                <div className="flex flex-wrap">
-                  {ID_HAIR_COLOR.map((h) => <Chip key={h.id} active={cmHairColor === h.id} onClick={() => setCmHairColor(cmHairColor === h.id ? "" : h.id)}>{h.label}</Chip>)}
-                </div>
-              </div>
-              <div className="mb-3">
-                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Hair length</div>
-                <div className="flex flex-wrap">
-                  {ID_HAIR_LENGTH.map((h) => <Chip key={h.id} active={cmHairLength === h.id} onClick={() => setCmHairLength(cmHairLength === h.id ? "" : h.id)}>{h.label}</Chip>)}
-                </div>
-              </div>
-              {cmHairLength && cmHairLength !== "bald" && cmHairLength !== "buzzcut" && (
-                <div className="mb-3">
-                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Hair texture</div>
-                  <div className="flex flex-wrap">
-                    {ID_HAIR_TEXTURE.map((h) => <Chip key={h.id} active={cmHairTexture === h.id} onClick={() => setCmHairTexture(cmHairTexture === h.id ? "" : h.id)}>{h.label}</Chip>)}
+
+              {cmSource === "scratch" ? (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    {cmIdentityDirty && <span className="text-xs px-1.5 py-0.5 rounded" style={{ fontFamily: fMono, color: COLORS.console, backgroundColor: COLORS.amberDim, fontSize: 9, fontWeight: 700 }}>MANUAL</span>}
                   </div>
-                </div>
-              )}
-              <div className="mb-3">
-                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Build</div>
-                <div className="flex flex-wrap">
-                  {ID_BUILD.map((b) => <Chip key={b.id} active={cmBuild === b.id} onClick={() => setCmBuild(cmBuild === b.id ? "" : b.id)}>{b.label}</Chip>)}
-                </div>
-              </div>
-              <div className="mb-3">
-                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Distinguishing marks (optional)</div>
-                <input value={cmMarks} onChange={(e) => setCmMarks(e.target.value)} placeholder="e.g. a small scar above the left eyebrow, freckles across the nose" className="w-full rounded p-2.5 text-sm" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}/>
-              </div>
+                  <div className="text-xs mb-3" style={{ fontFamily: fBody, color: COLORS.steel }}>Pick traits — identity paragraph auto-compiles below. Edit the text directly to lock it in manual mode.</div>
 
-              <div className="mt-2 mb-1 flex items-center justify-between">
-                <div className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>Compiled identity paragraph</div>
-                {cmIdentityDirty && (
-                  <button onClick={() => setCmIdentityDirty(false)} className="text-xs px-2 py-0.5 rounded" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}` }}>Reset to chips</button>
-                )}
-              </div>
-              <textarea
-                value={cmIdentityText}
-                onChange={(e) => { setCmIdentityText(e.target.value); setCmIdentityDirty(true); }}
-                placeholder="Pick traits above to auto-build, or type your character description directly"
-                rows={4}
-                className="w-full rounded p-3 text-sm resize-none"
-                style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${cmIdentityDirty ? COLORS.amberDim : COLORS.panelBorder}` }}
-              />
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Gender</div>
+                    <div className="flex flex-wrap">
+                      {ID_GENDER.map((g) => <Chip key={g.id} active={cmGender === g.id} onClick={() => setCmGender(cmGender === g.id ? "" : g.id)}>{g.label}</Chip>)}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Age</div>
+                    <div className="flex flex-wrap">
+                      {ID_AGE.map((a) => <Chip key={a.id} active={cmAge === a.id} onClick={() => setCmAge(cmAge === a.id ? "" : a.id)}>{a.label}</Chip>)}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Skin tone</div>
+                    <div className="flex flex-wrap">
+                      {ID_SKIN.map((s) => <Chip key={s.id} active={cmSkin === s.id} onClick={() => setCmSkin(cmSkin === s.id ? "" : s.id)}>{s.label}</Chip>)}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Face shape</div>
+                    <div className="flex flex-wrap">
+                      {ID_FACE.map((f) => <Chip key={f.id} active={cmFace === f.id} onClick={() => setCmFace(cmFace === f.id ? "" : f.id)}>{f.label}</Chip>)}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Eye shape</div>
+                    <div className="flex flex-wrap">
+                      {ID_EYES.map((e) => <Chip key={e.id} active={cmEyes === e.id} onClick={() => setCmEyes(cmEyes === e.id ? "" : e.id)}>{e.label}</Chip>)}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Hair color</div>
+                    <div className="flex flex-wrap">
+                      {ID_HAIR_COLOR.map((h) => <Chip key={h.id} active={cmHairColor === h.id} onClick={() => setCmHairColor(cmHairColor === h.id ? "" : h.id)}>{h.label}</Chip>)}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Hair length</div>
+                    <div className="flex flex-wrap">
+                      {ID_HAIR_LENGTH.map((h) => <Chip key={h.id} active={cmHairLength === h.id} onClick={() => setCmHairLength(cmHairLength === h.id ? "" : h.id)}>{h.label}</Chip>)}
+                    </div>
+                  </div>
+                  {cmHairLength && cmHairLength !== "bald" && cmHairLength !== "buzzcut" && (
+                    <div className="mb-3">
+                      <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Hair texture</div>
+                      <div className="flex flex-wrap">
+                        {ID_HAIR_TEXTURE.map((h) => <Chip key={h.id} active={cmHairTexture === h.id} onClick={() => setCmHairTexture(cmHairTexture === h.id ? "" : h.id)}>{h.label}</Chip>)}
+                      </div>
+                    </div>
+                  )}
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Build</div>
+                    <div className="flex flex-wrap">
+                      {ID_BUILD.map((b) => <Chip key={b.id} active={cmBuild === b.id} onClick={() => setCmBuild(cmBuild === b.id ? "" : b.id)}>{b.label}</Chip>)}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Distinguishing marks (optional)</div>
+                    <input value={cmMarks} onChange={(e) => setCmMarks(e.target.value)} placeholder="e.g. a small scar above the left eyebrow, freckles across the nose" className="w-full rounded p-2.5 text-sm" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}/>
+                  </div>
+
+                  <div className="mt-2 mb-1 flex items-center justify-between">
+                    <div className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>Compiled identity paragraph</div>
+                    {cmIdentityDirty && (
+                      <button onClick={() => setCmIdentityDirty(false)} className="text-xs px-2 py-0.5 rounded" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}` }}>Reset to chips</button>
+                    )}
+                  </div>
+                  <textarea
+                    value={cmIdentityText}
+                    onChange={(e) => { setCmIdentityText(e.target.value); setCmIdentityDirty(true); }}
+                    placeholder="Pick traits above to auto-build, or type your character description directly"
+                    rows={4}
+                    className="w-full rounded p-3 text-sm resize-none"
+                    style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${cmIdentityDirty ? COLORS.amberDim : COLORS.panelBorder}` }}
+                  />
+                </>
+              ) : (
+                <>
+                  <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Copy the extract prompt, paste into an AI tool with a portrait photo of your character, then paste the result below.</div>
+                  <ExamineHelper
+                    open={cmExOpen} setOpen={setCmExOpen}
+                    copied={cmExCopied} onCopy={mkCopy(EXAMINE_PROMPT, setCmExCopied)}
+                    prompt={EXAMINE_PROMPT}
+                    hint="Attach a portrait photo and send this to an AI — it returns a single identity paragraph you can paste below."
+                    linkLabel="Copy extract prompt →"
+                  />
+                  <div className="text-xs mb-1 mt-3" style={{ fontFamily: fBody, color: COLORS.steel }}>Paste extracted identity</div>
+                  <textarea
+                    value={cmIdentityText}
+                    onChange={(e) => setCmIdentityText(e.target.value)}
+                    placeholder="Paste the extracted identity paragraph here"
+                    rows={4}
+                    className="w-full rounded p-3 text-sm resize-none"
+                    style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}
+                  />
+                </>
+              )}
 
               <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${COLORS.panelBorder}` }}>
                 <div className="flex items-center justify-between mb-2">
@@ -1523,7 +1600,7 @@ export default function CinemaPromptStudio() {
                   <div className="flex flex-wrap gap-2">
                     {characters.map((c) => (
                       <div key={c.id} className="flex items-center rounded" style={{ border: `1px solid ${COLORS.panelBorder}` }}>
-                        <button onClick={() => { setCmIdentityText(c.text); setCmIdentityDirty(true); }} className="px-3 py-1.5 text-sm" style={{ fontFamily: fBody, color: COLORS.paper }} title={c.text}>{c.name}</button>
+                        <button onClick={() => { setCmIdentityText(c.text); setCmIdentityDirty(cmSource === "scratch"); }} className="px-3 py-1.5 text-sm" style={{ fontFamily: fBody, color: COLORS.paper }} title={c.text}>{c.name}</button>
                         <button onClick={() => deleteCharacter(c.id)} className="px-2 py-1.5" style={{ color: COLORS.steel }}><X size={12}/></button>
                       </div>
                     ))}
@@ -1532,30 +1609,44 @@ export default function CinemaPromptStudio() {
               </div>
             </Panel>
 
-            <Panel>
-              <Eyebrow>03 — Outfit &amp; Style</Eyebrow>
-              <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Style vibe</div>
-              <div className="flex flex-wrap mb-3">
-                {STYLE_VIBES.map((v) => <Chip key={v.id} active={cmVibe === v.id} onClick={() => setCmVibe(cmVibe === v.id ? "" : v.id)}>{v.label}</Chip>)}
-              </div>
-              <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel }}>Outfit detail (optional)</div>
-              <textarea value={cmOutfit} onChange={(e) => setCmOutfit(e.target.value)} placeholder="e.g. oversized cream linen shirt, dark jeans, white leather sneakers" rows={2} className="w-full rounded p-3 text-sm resize-none" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}/>
-            </Panel>
+            {cmOutput === "hero" || cmOutput === "expressions" ? (
+              <Panel>
+                <Eyebrow>03 — Outfit &amp; Style</Eyebrow>
+                <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>Identity plate &amp; expression sheet are always neutral — styling is locked off for consistency.</p>
+              </Panel>
+            ) : (
+              <Panel>
+                <Eyebrow>03 — Outfit &amp; Style</Eyebrow>
+                {(cmOutput === "fullbody" || cmOutput === "outfitsheet") && !cmOutfit.trim() && (
+                  <p className="text-xs mb-3" style={{ fontFamily: fBody, color: COLORS.amber }}>This output needs an outfit — describe it below.</p>
+                )}
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Style vibe</div>
+                <div className="flex flex-wrap mb-3">
+                  {STYLE_VIBES.map((v) => <Chip key={v.id} active={cmVibe === v.id} onClick={() => setCmVibe(cmVibe === v.id ? "" : v.id)}>{v.label}</Chip>)}
+                </div>
+                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel }}>
+                  Outfit detail {(cmOutput === "fullbody" || cmOutput === "outfitsheet") ? <span style={{ color: COLORS.amber }}>— required for this output</span> : "(optional)"}
+                </div>
+                <textarea value={cmOutfit} onChange={(e) => setCmOutfit(e.target.value)} placeholder="e.g. oversized cream linen shirt, dark jeans, white leather sneakers" rows={2} className="w-full rounded p-3 text-sm resize-none" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${(cmOutput === "fullbody" || cmOutput === "outfitsheet") ? COLORS.amberDim : COLORS.panelBorder}` }}/>
+              </Panel>
+            )}
+
+            {cmOutput !== "hero" && cmOutput !== "expressions" && (
+              <Panel>
+                <Eyebrow>04 — Lighting &amp; Background</Eyebrow>
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Lighting</div>
+                <div className="flex flex-wrap mb-3">
+                  {CM_LIGHTS.map((l) => <Chip key={l.id} active={cmLight === l.id} onClick={() => setCmLight(l.id)}>{l.label}</Chip>)}
+                </div>
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Background</div>
+                <div className="flex flex-wrap">
+                  {CM_BACKGROUNDS.map((b) => <Chip key={b.id} active={cmBg === b.id} onClick={() => setCmBg(b.id)}>{b.label}</Chip>)}
+                </div>
+              </Panel>
+            )}
 
             <Panel>
-              <Eyebrow>04 — Lighting &amp; Background</Eyebrow>
-              <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Lighting</div>
-              <div className="flex flex-wrap mb-3">
-                {CM_LIGHTS.map((l) => <Chip key={l.id} active={cmLight === l.id} onClick={() => setCmLight(l.id)}>{l.label}</Chip>)}
-              </div>
-              <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Background</div>
-              <div className="flex flex-wrap">
-                {CM_BACKGROUNDS.map((b) => <Chip key={b.id} active={cmBg === b.id} onClick={() => setCmBg(b.id)}>{b.label}</Chip>)}
-              </div>
-            </Panel>
-
-            <Panel>
-              <Eyebrow>05 — Realism Stack</Eyebrow>
+              <Eyebrow>{cmOutput === "hero" || cmOutput === "expressions" ? "03" : "05"} — Realism Stack</Eyebrow>
               <Toggle checked={cmSkinTexture} onChange={setCmSkinTexture} label="Real skin texture" description="Visible pores, fine hairs, subtle sebaceous variation — no AI smoothing" />
               <Toggle checked={cmAntiAI} onChange={setCmAntiAI} label="Anti-AI clause" description="Explicit instruction to avoid plastic skin, uncanny valley, AI artifacts" />
             </Panel>
@@ -1619,7 +1710,7 @@ export default function CinemaPromptStudio() {
                     </p>
                   ) : (
                     <p className="text-sm italic leading-relaxed" style={{ fontFamily: fBody, color: COLORS.ink, opacity: 0.55 }}>
-                      {mode === "cinema" ? "Describe your character above (or switch to Reference photo) to compile your prompt." : mode === "product" ? "Describe your product above to compile your prompt." : mode === "charmaker" ? "Build your character identity above to compile your prompt." : "Describe your design brief above to compile your prompt."}
+                      {mode === "cinema" ? "Describe your character above (or switch to Reference photo) to compile your prompt." : mode === "product" ? "Describe your product above to compile your prompt." : mode === "charmaker" ? ((cmOutput === "fullbody" || cmOutput === "outfitsheet") && cmIdentityText.trim() && !characterPrompt ? "Describe the outfit to compile this output." : "Build your character identity above to compile your prompt.") : "Describe your design brief above to compile your prompt."}
                     </p>
                   )}
 
@@ -1631,7 +1722,7 @@ export default function CinemaPromptStudio() {
                         ? `${PRODUCT_OUTPUTS.find((o) => o.id === productOutput).label} · ${material.label} · ${prodLight.label}${applyBrand && brandHasContent ? " · BRAND" : ""}`
                         : mode === "location" ? `${LOCATION_OUTPUTS.find((o) => o.id === locationOutput).label} · ${tod ? tod.label : ""} · ${weather ? weather.label : ""}${applyBrand && brandHasContent ? " · BRAND" : ""}`
                         : mode === "assemble" ? `Assemble · ${[assembleCharId && "char", assembleProdId && "product", assembleLocId && "location"].filter(Boolean).join(" + ") || "no assets yet"}`
-                        : mode === "charmaker" ? `${CHARMAKER_OUTPUTS.find((o) => o.id === cmOutput)?.label ?? "Character Maker"} · ${[cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild].filter(Boolean).length} traits`
+                        : mode === "charmaker" ? `${CHARMAKER_OUTPUTS.find((o) => o.id === cmOutput)?.label ?? "Character Maker"} · ${cmSource}`
                         : `${aspect.label} · ${thumbType.label}${applyBrand && brandHasContent ? " · BRAND" : ""}`}
                     </p>
                   </div>

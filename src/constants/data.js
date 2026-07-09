@@ -325,11 +325,21 @@ export const THUMB_TYPES = [
 export const EMPTY_BRAND = { name: "", palette: "", font: "", mood: "", styleRef: "" };
 
 export const CHARMAKER_OUTPUTS = [
-  { id: "hero", label: "Hero portrait", desc: "Single portrait — face and identity front and center" },
-  { id: "sheet", label: "Identity sheet", desc: "One image: face + 3 crops (eyes, hair, profile) in a 2×2 grid" },
-  { id: "turnaround", label: "Turnaround (6 prompts)", desc: "Six separate prompts, one per view, for a full 360° consistency reference" },
-  { id: "expressions", label: "Expression sheet", desc: "9-panel expression reference grid in one image" },
+  { id: "hero", label: "Identity plate (hero)", desc: "One neutral master reference photo — plain dark tank top, no styling, no accessories" },
+  { id: "sheet", label: "Character sheet (1 image)", desc: "A 3x2 grid: front, left 3/4, right profile, back, neutral face close-up, full body" },
+  { id: "fullbody", label: "Full body + outfit (1 image)", desc: "One head-to-toe photograph of the character wearing the outfit" },
+  { id: "outfitsheet", label: "Outfit sheet (1 image)", desc: "A 3-panel grid: outfit front and back framed from the neck down, plus one neutral face close-up anchor" },
+  { id: "turnaround", label: "Turnaround set (6 prompts)", desc: "Six separate prompts, one per view" },
+  { id: "expressions", label: "Expression sheet (1 image)", desc: "A 3x3 grid: the identical face showing nine different expressions" },
 ];
+
+export const CHARMAKER_OUTFIT_PANELS = [
+  "a full-body front view of the outfit, framed from the neck down with the head outside the frame, so the clothing is the sole subject",
+  "a full-body back view of the outfit including the hair falling over it, framed to show the complete garment from behind",
+  "a chest-up close-up of the character's face with a neutral expression, as the identity anchor",
+];
+
+export const IDENTITY_PLATE_CLAUSE = "wearing a plain fitted dark tank top, no accessories, no jewelry, no styling — a neutral identity reference plate";
 
 export const CHARMAKER_VIEWS = [
   "a straight-on front view at eye level",
