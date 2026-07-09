@@ -323,3 +323,113 @@ export const THUMB_TYPES = [
 ];
 
 export const EMPTY_BRAND = { name: "", palette: "", font: "", mood: "", styleRef: "" };
+
+export const CHARMAKER_OUTPUTS = [
+  { id: "hero", label: "Hero portrait", desc: "Single portrait — face and identity front and center" },
+  { id: "sheet", label: "Identity sheet", desc: "One image: face + 3 crops (eyes, hair, profile) in a 2×2 grid" },
+  { id: "turnaround", label: "Turnaround (6 prompts)", desc: "Six separate prompts, one per view, for a full 360° consistency reference" },
+  { id: "expressions", label: "Expression sheet", desc: "9-panel expression reference grid in one image" },
+];
+
+export const CHARMAKER_VIEWS = [
+  "a straight-on front view at eye level",
+  "a front-left three-quarter view at eye level",
+  "a pure left profile view at eye level",
+  "a straight back view at eye level",
+  "a pure right profile view at eye level",
+  "a front-right three-quarter view at eye level",
+];
+
+export const CHARMAKER_EXPRESSIONS_9 = EXPRESSION_GROUPS.flatMap((g) => g.items).slice(0, 9);
+
+export const ID_AGE = [
+  { id: "teen", label: "Teen (16)", phrase: "a teenager, approximately 16 years old" },
+  { id: "20s", label: "20s", phrase: "in their mid-20s" },
+  { id: "30s", label: "30s", phrase: "in their early 30s" },
+  { id: "40s", label: "40s", phrase: "in their mid-40s" },
+  { id: "50s", label: "50s", phrase: "in their early 50s" },
+  { id: "60plus", label: "60+", phrase: "in their 60s or older" },
+];
+
+export const ID_GENDER = [
+  { id: "man", label: "Man", phrase: "man" },
+  { id: "woman", label: "Woman", phrase: "woman" },
+  { id: "nb", label: "Non-binary", phrase: "non-binary person" },
+];
+
+export const ID_SKIN = [
+  { id: "fair", label: "Fair", phrase: "fair, pale skin" },
+  { id: "light", label: "Light", phrase: "light skin" },
+  { id: "medium", label: "Medium", phrase: "medium skin" },
+  { id: "olive", label: "Olive", phrase: "olive-toned skin" },
+  { id: "tan", label: "Tan", phrase: "tan, warm-brown skin" },
+  { id: "dark", label: "Dark", phrase: "deep dark-brown skin" },
+];
+
+export const ID_FACE = [
+  { id: "oval", label: "Oval", phrase: "an oval face" },
+  { id: "square", label: "Square jaw", phrase: "a strong square jaw" },
+  { id: "round", label: "Round", phrase: "a round face" },
+  { id: "heart", label: "Heart-shaped", phrase: "a heart-shaped face with a wide forehead" },
+  { id: "angular", label: "Angular", phrase: "an angular, defined face" },
+  { id: "soft", label: "Soft features", phrase: "a soft, gentle face with subtle features" },
+];
+
+export const ID_EYES = [
+  { id: "almond", label: "Almond", phrase: "almond-shaped eyes" },
+  { id: "round", label: "Round", phrase: "large round eyes" },
+  { id: "hooded", label: "Hooded", phrase: "slightly hooded eyes" },
+  { id: "monolid", label: "Monolid", phrase: "monolid eyes" },
+  { id: "deepset", label: "Deep-set", phrase: "deep-set eyes" },
+  { id: "upturned", label: "Upturned", phrase: "upturned eyes" },
+];
+
+export const ID_HAIR_COLOR = [
+  { id: "black", label: "Black", phrase: "jet-black" },
+  { id: "dark-brown", label: "Dark brown", phrase: "dark brown" },
+  { id: "brown", label: "Brown", phrase: "medium brown" },
+  { id: "auburn", label: "Auburn", phrase: "auburn" },
+  { id: "blonde", label: "Blonde", phrase: "blonde" },
+  { id: "platinum", label: "Platinum", phrase: "platinum-blonde" },
+  { id: "red", label: "Red", phrase: "vibrant red" },
+  { id: "grey", label: "Grey / silver", phrase: "silver-grey" },
+  { id: "white", label: "White", phrase: "pure white" },
+];
+
+export const ID_HAIR_LENGTH = [
+  { id: "bald", label: "Bald / shaved", phrase: "a shaved head" },
+  { id: "buzzcut", label: "Buzz cut", phrase: "a very short buzz cut" },
+  { id: "short", label: "Short", phrase: "short" },
+  { id: "medium", label: "Medium", phrase: "medium-length" },
+  { id: "long", label: "Long", phrase: "long" },
+  { id: "very-long", label: "Very long", phrase: "very long" },
+];
+
+export const ID_HAIR_TEXTURE = [
+  { id: "straight", label: "Straight", phrase: "straight" },
+  { id: "wavy", label: "Wavy", phrase: "wavy" },
+  { id: "curly", label: "Curly", phrase: "curly" },
+  { id: "coily", label: "Coily", phrase: "tightly coiled" },
+  { id: "locs", label: "Locs", phrase: "in locs" },
+];
+
+export const ID_BUILD = [
+  { id: "slim", label: "Slim", phrase: "a slim, lean build" },
+  { id: "athletic", label: "Athletic", phrase: "an athletic build" },
+  { id: "average", label: "Average", phrase: "an average build" },
+  { id: "stocky", label: "Stocky", phrase: "a stocky, broad-shouldered build" },
+  { id: "heavyset", label: "Heavy-set", phrase: "a heavyset build" },
+];
+
+export const STYLE_VIBES = [
+  { id: "streetwear", label: "Streetwear", phrase: "streetwear-influenced clothing" },
+  { id: "casual", label: "Casual", phrase: "casual everyday clothing" },
+  { id: "business", label: "Business casual", phrase: "smart business-casual attire" },
+  { id: "formal", label: "Formal", phrase: "formal attire" },
+  { id: "techwear", label: "Techwear", phrase: "techwear with functional utilitarian layers" },
+  { id: "vintage", label: "Vintage", phrase: "vintage-inspired clothing" },
+  { id: "editorial", label: "Editorial", phrase: "high editorial fashion styling" },
+  { id: "athletic", label: "Athletic", phrase: "athletic or sporty clothing" },
+  { id: "bohemian", label: "Bohemian", phrase: "bohemian flowing natural-fabric clothing" },
+  { id: "punk", label: "Punk / alt", phrase: "punk or alternative styling" },
+];
