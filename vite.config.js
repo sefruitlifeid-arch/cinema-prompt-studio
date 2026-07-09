@@ -7,5 +7,5 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
-  base: './',
+  base: '/cinema-prompt-studio/',
 })
