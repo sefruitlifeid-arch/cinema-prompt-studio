@@ -29,7 +29,7 @@ npm run preview
 
 Push to `main` → GitHub Actions builds and deploys automatically.
 
-Live URL: `https://nitiyudo.github.io/cinema-prompt-studio/`
+Live URL: `https://sefruitlifeid-arch.github.io/cinema-prompt-studio/`
 
 To enable for the first time:
 1. Go to **Settings → Pages** in the GitHub repo
