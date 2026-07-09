@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; }
+input[type="range"]::-webkit-slider-runnable-track { height: 3px; background: #3A3025; border-radius: 2px; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5.5px; border-radius: 50%; background: #FFB000; cursor: pointer; }
+input[type="range"]::-moz-range-track { height: 3px; background: #3A3025; border-radius: 2px; }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: none; border-radius: 50%; background: #FFB000; cursor: pointer; }
+textarea::placeholder, input::placeholder { color: #7C93A0; opacity: 0.6; }
+select { -webkit-appearance: none; appearance: none; }
