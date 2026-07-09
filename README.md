@@ -24,3 +24,14 @@ Output goes to `dist/`. The build uses relative paths (`base: './'`) so it works
 ```bash
 npm run preview
 ```
+
+## Deploy
+
+Push to `main` → GitHub Actions builds and deploys automatically.
+
+Live URL: `https://nitiyudo.github.io/cinema-prompt-studio/`
+
+To enable for the first time:
+1. Go to **Settings → Pages** in the GitHub repo
+2. Set **Source** to **GitHub Actions**
+3. Push any commit to `main` to trigger the first deploy
