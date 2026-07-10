@@ -176,18 +176,18 @@ export const EXPRESSION_GROUPS = [
   ]},
   { group: "Negative", items: [
     { id: "melancholy", label: "Wistful", phrase: "a wistful, faintly melancholic expression with softened eyes" },
-    { id: "angry", label: "Marah", phrase: "jaw clenched tight, brows pressed down, nostrils slightly flared in visible anger" },
-    { id: "angry-hold", label: "Marah tertahan", phrase: "lips pressed thin, a hard controlled stare holding back anger" },
-    { id: "sad", label: "Sedih", phrase: "downturned eyes and mouth, a heavy distant gaze filled with sadness" },
-    { id: "near-tears", label: "Hampir menangis", phrase: "glassy welling eyes, a faint tremble in the chin, on the verge of tears" },
-    { id: "disgust", label: "Jijik", phrase: "nose wrinkled, upper lip raised asymmetrically in disgust" },
-    { id: "exhausted", label: "Lelah", phrase: "heavy eyelids, drained expression, visible exhaustion pulling at every feature" },
+    { id: "angry", label: "Angry", phrase: "jaw clenched tight, brows pressed down, nostrils slightly flared in visible anger" },
+    { id: "angry-hold", label: "Suppressed anger", phrase: "lips pressed thin, a hard controlled stare holding back anger" },
+    { id: "sad", label: "Sad", phrase: "downturned eyes and mouth, a heavy distant gaze filled with sadness" },
+    { id: "near-tears", label: "Near tears", phrase: "glassy welling eyes, a faint tremble in the chin, on the verge of tears" },
+    { id: "disgust", label: "Disgusted", phrase: "nose wrinkled, upper lip raised asymmetrically in disgust" },
+    { id: "exhausted", label: "Exhausted", phrase: "heavy eyelids, drained expression, visible exhaustion pulling at every feature" },
   ]},
   { group: "Intense", items: [
     { id: "intense", label: "Intense focus", phrase: "an intense, focused stare directly into the lens, jaw set" },
     { id: "surprised", label: "Subtle surprise", phrase: "a subtle flash of surprise, brows lifted slightly, lips just parting" },
-    { id: "fear", label: "Takut", phrase: "eyes wide with fear, body pulling slightly back, lips parted in alarm" },
-    { id: "anxious", label: "Cemas", phrase: "biting the lower lip, knitted brows, a restless anxious gaze that won't settle" },
+    { id: "fear", label: "Fearful", phrase: "eyes wide with fear, body pulling slightly back, lips parted in alarm" },
+    { id: "anxious", label: "Anxious", phrase: "biting the lower lip, knitted brows, a restless anxious gaze that won't settle" },
     { id: "shock", label: "Shock", phrase: "mouth open wide, eyebrows shot up, a full shock reaction — genuine and unguarded" },
   ]},
 ];
@@ -324,12 +324,48 @@ export const THUMB_TYPES = [
 
 export const EMPTY_BRAND = { name: "", palette: "", font: "", mood: "", styleRef: "" };
 
+// ── Shared prompt-formula constants (Character Maker + Storyboard) ──────────
+export const ANTI_TEXT_CLAUSE =
+  "No text, numbers, letters, labels, captions, or watermarks rendered anywhere in the image.";
+
+export const LOCKED_BACKDROP_LIGHT =
+  "Mid-gray seamless studio background — even neutral mid-gray, no seam line, no gradient, no falloff to black or white. Relight from scratch overriding any reference lighting: one broad diffused source from camera-left and slightly above, gentle wrap onto the subject, no hard shadow edges, no rim light, no hair light, no kicker. Skin reads matte and velvety — zero shine on forehead, nose bridge, cheekbones, temples, and chin — in a low-contrast milky look. Skin renders at its true natural skin tone and wardrobe at its true natural color, warmth preserved and natural against the neutral gray, never pale or washed-out or cool-shifted by the background.";
+
+export const REALISM_CLOSE =
+  "Real peach fuzz at the jaw and hairline, real soft fine even pore texture, subsurface scattering reading as semi-translucent biology, never plastic, never waxy AI render, never glass-skin, never harsh — fine flattering texture that keeps the face looking good, no acne, no blemishes, no rough or enlarged pores. Hair rendered strand by strand with realistic flyaways and baby hairs at the hairline. Fabric with real weave detail, real weight, real drape. Photographed on a 50mm prime at a wide aperture, natural round bokeh, even sharpness, soft natural film grain. Photographed not generated.";
+
+export const REF_ANCHOR_CLAUSE =
+  "The exact same character as the attached reference image — identical face, bone structure, skin tone, hair color and texture, and body proportions. Do not alter the identity in any way.";
+
+export const CM_BASELINE_WARDROBE = {
+  female: "a plain black thin-strap camisole, no jewelry, no logos, no graphics",
+  male: "a plain black ribbed tank, no jewelry, no logos, no graphics",
+};
+
+export const CM_DETAIL_OPTIONS = [
+  { id: "hands", label: "Hands & nails", clause: "a tight close-up of the hands and nails, both hands relaxed and clearly visible, skin texture and nail detail readable, filling the panel cleanly" },
+  { id: "jewelry", label: "Jewelry", clause: "a tight close-up of the character's key jewelry piece, metal surface detail readable, filling the panel cleanly" },
+  { id: "piercing", label: "Piercing", clause: "a tight close-up of the character's piercing, exact position and metal readable, filling the panel cleanly" },
+  { id: "marker", label: "Tattoo / marker", clause: "a tight close-up of the character's distinguishing mark or tattoo, placement and detail readable, filling the panel cleanly" },
+  { id: "prop", label: "Held prop", clause: "a tight close-up of the character's held prop in hand, the prop filling the frame with the hand" },
+];
+
+export const SB_LIGHTING = [
+  { id: "soft-daylight", label: "Soft daylight", phrase: "soft natural daylight, diffused and even, with gentle open shadows" },
+  { id: "golden-hour", label: "Golden hour", phrase: "warm golden-hour sunlight, low-angle and directional, with long soft shadows" },
+  { id: "overcast", label: "Overcast", phrase: "flat overcast light, a giant natural softbox with muted contrast and no hard shadows" },
+  { id: "hard-sun", label: "Hard sun", phrase: "hard direct midday sun with crisp defined shadows and strong contrast" },
+  { id: "tungsten", label: "Tungsten interior", phrase: "warm tungsten interior lighting from practical lamps, amber tones and cozy pools of light" },
+  { id: "neon-night", label: "Neon night", phrase: "nighttime neon lighting with colored signs spilling saturated color onto the subject and wet surfaces" },
+  { id: "firelight", label: "Firelight", phrase: "flickering warm firelight from below eye level, dancing orange glow with deep soft shadows" },
+  { id: "moonlight", label: "Moonlight", phrase: "cool blue moonlight, dim and directional, with silvery highlights and deep night shadows" },
+];
+
 export const CHARMAKER_OUTPUTS = [
-  { id: "hero", label: "Identity plate (hero)", desc: "One neutral master reference photo — plain dark tank top, no styling, no accessories" },
-  { id: "sheet", label: "Character sheet (1 image)", desc: "A 3x2 grid: front, left 3/4, right profile, back, neutral face close-up, full body" },
+  { id: "hero", label: "Identity plate (hero)", desc: "One neutral master reference headshot — baseline wardrobe, no styling, locked studio formula" },
+  { id: "sheet", label: "Character sheet (1 image)", desc: "A 3x2 grid: full body front, both side profiles, back, face close-up, and one detail shot" },
   { id: "fullbody", label: "Full body + outfit (1 image)", desc: "One head-to-toe photograph of the character wearing the outfit" },
   { id: "outfitsheet", label: "Outfit sheet (1 image)", desc: "A 3-panel grid: outfit front and back framed from the neck down, plus one neutral face close-up anchor" },
-  { id: "turnaround", label: "Turnaround set (6 prompts)", desc: "Six separate prompts, one per view" },
   { id: "expressions", label: "Expression sheet (1 image)", desc: "A 3x3 grid: the identical face showing nine different expressions" },
 ];
 
@@ -337,17 +373,6 @@ export const CHARMAKER_OUTFIT_PANELS = [
   "a full-body front view of the outfit, framed from the neck down with the head outside the frame, so the clothing is the sole subject",
   "a full-body back view of the outfit including the hair falling over it, framed to show the complete garment from behind",
   "a chest-up close-up of the character's face with a neutral expression, as the identity anchor",
-];
-
-export const IDENTITY_PLATE_CLAUSE = "wearing a plain fitted dark tank top, no accessories, no jewelry, no styling — a neutral identity reference plate";
-
-export const CHARMAKER_VIEWS = [
-  "a straight-on front view at eye level",
-  "a front-left three-quarter view at eye level",
-  "a pure left profile view at eye level",
-  "a straight back view at eye level",
-  "a pure right profile view at eye level",
-  "a front-right three-quarter view at eye level",
 ];
 
 export const CHARMAKER_EXPRESSIONS_9 = EXPRESSION_GROUPS.flatMap((g) => g.items).slice(0, 9);

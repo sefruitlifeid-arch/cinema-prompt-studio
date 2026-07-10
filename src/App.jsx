@@ -11,7 +11,8 @@ import {
   PRODUCT_OUTPUTS, SHEET_ANGLES, MATERIALS, PRODUCT_LIGHTING, PRODUCT_BG, PRODUCT_ANGLE,
   ASPECTS, THUMB_LAYOUTS, COLOR_TREATMENTS, RENDER_STYLES, TEXT_STYLES, FONT_STYLE_CHIPS, THUMB_TYPES,
   EMPTY_BRAND,
-  CHARMAKER_OUTPUTS, CHARMAKER_VIEWS, CHARMAKER_EXPRESSIONS_9, CHARMAKER_OUTFIT_PANELS, IDENTITY_PLATE_CLAUSE,
+  CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9, CHARMAKER_OUTFIT_PANELS,
+  ANTI_TEXT_CLAUSE, LOCKED_BACKDROP_LIGHT, REALISM_CLOSE, REF_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
   STYLE_VIBES,
 } from "./constants/data";
@@ -20,21 +21,9 @@ import { PRESET_KEY, CHAR_KEY, PRODUCT_KEY, BRAND_KEY, LOCATION_KEY, memStore, s
 import { Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper } from "./components/primitives";
 import { PlacementCanvas, TextPlacement, AngleOrbit } from "./components/canvases";
 
-const CM_BACKGROUNDS = [
-  { id: "seamless-dark", label: "Dark seamless", phrase: "a clean dark seamless studio backdrop" },
-  { id: "seamless-light", label: "Light seamless", phrase: "a clean light seamless studio backdrop" },
-  { id: "seamless-mid", label: "Mid grey", phrase: "a mid-grey seamless studio backdrop" },
-  { id: "gradient", label: "Gradient", phrase: "a smooth studio gradient background" },
-  { id: "contextual", label: "In context", phrase: "a naturalistic contextual environment" },
-];
-
-const CM_LIGHTS = [
-  { id: "softbox", label: "Clamshell soft", phrase: "clamshell soft-box lighting with a bright key from above and a reflector fill below" },
-  { id: "rembrandt", label: "Rembrandt", phrase: "Rembrandt lighting with a triangular highlight on the shadow cheek" },
-  { id: "rim", label: "Rim + fill", phrase: "a strong rim-light with edge separation and a gentle front fill" },
-  { id: "natural", label: "Natural window", phrase: "large-window natural side light" },
-  { id: "ringlight", label: "Ring light", phrase: "a ring light with centered catchlight rings in both eyes" },
-];
+// Locked backdrop variant for multi-panel sheets ("six" / "three" / "nine" panels)
+const lockedBackdropUniform = (n) =>
+  LOCKED_BACKDROP_LIGHT.replace("studio background —", `studio backdrop applied uniformly across all ${n} panels —`);
 
 export default function CinemaPromptStudio() {
   const [mode, setMode] = useState("cinema");
@@ -165,10 +154,9 @@ export default function CinemaPromptStudio() {
   const [cmIdentityDirty, setCmIdentityDirty] = useState(false);
   const [cmOutfit, setCmOutfit] = useState("");
   const [cmVibe, setCmVibe] = useState("");
-  const [cmBg, setCmBg] = useState("seamless-dark");
-  const [cmLight, setCmLight] = useState("softbox");
-  const [cmSkinTexture, setCmSkinTexture] = useState(true);
-  const [cmAntiAI, setCmAntiAI] = useState(true);
+  const [cmBaseGender, setCmBaseGender] = useState("female"); // baseline wardrobe fork
+  const [cmRefLocked, setCmRefLocked] = useState(false);
+  const [cmDetail, setCmDetail] = useState("hands");
   const [cmSavingOpen, setCmSavingOpen] = useState(false);
   const [cmName, setCmName] = useState("");
   const [cmSource, setCmSource] = useState("scratch");
@@ -375,83 +363,84 @@ export default function CinemaPromptStudio() {
     return parts.filter(Boolean).join(" ");
   }, [assembleCharId, assembleProdId, assembleLocId, assembleDirection, assembleAspectId, assemblePx, assemblePy, assembleDist, characters, products, locations, brandClause]);
 
-  // ── Character Maker compiler ────────────────────────────────────────────────
+  // ── Character Maker compiler (V4.1: locked studio formula) ─────────────────
   const characterPrompt = useMemo(() => {
-    if (!cmIdentityText.trim()) return null;
-    const identity = cmIdentityText.trim().replace(/\.+$/, "");
-    const realismParts = [];
-    if (cmSkinTexture) realismParts.push("real skin texture — visible pores, fine hairs, subtle sebaceous variation");
-    if (cmAntiAI) realismParts.push("Photographic image. Real photograph. No AI artifacts, no plastic skin, no uncanny valley.");
-    const realismStack = realismParts.join(" ");
-
-    // Hero and expressions: locked neutral presentation
-    if (cmOutput === "hero") {
-      return [
-        `A neutral identity reference plate of ${identity}, ${IDENTITY_PLATE_CLAUSE}.`,
-        "Neutral relaxed expression, looking directly at camera.",
-        "Soft even studio lighting, a mid-grey seamless studio backdrop. Chest-up portrait, camera at eye level.",
-        realismStack,
-      ].filter(Boolean).join(" ");
-    }
-
-    if (cmOutput === "expressions") {
-      return [
-        `Create a character expression reference sheet as ONE single image: a 3×3 grid of 9 panels. All panels show the exact same character — ${identity}, ${IDENTITY_PLATE_CLAUSE} — from the same chest-up angle with identical soft even studio lighting and a mid-grey seamless studio backdrop.`,
-        `Expressions (label each panel): ${CHARMAKER_EXPRESSIONS_9.map((e, i) => `[${i + 1}] ${e.label}: ${e.phrase}`).join("; ")}.`,
-        "The face and identity must be absolutely consistent across all 9 panels — same bone structure, skin, hair, and features. Only the expression changes.",
-        realismStack,
-      ].filter(Boolean).join(" ");
-    }
-
-    // Other outputs: user-controlled bg/light/outfit
-    const bg = CM_BACKGROUNDS.find((b) => b.id === cmBg);
-    const light = CM_LIGHTS.find((l) => l.id === cmLight);
-    const bgPhrase = bg ? bg.phrase : "a clean dark seamless studio backdrop";
-    const lightPhrase = light ? light.phrase : "clamshell soft-box lighting with a bright key from above and a reflector fill below";
+    if (!cmRefLocked && !cmIdentityText.trim()) return null;
+    const output = CHARMAKER_OUTPUTS.some((o) => o.id === cmOutput) ? cmOutput : "hero";
+    const identityBlock = cmRefLocked ? REF_ANCHOR_CLAUSE : `${cmIdentityText.trim().replace(/\.+$/, "")}.`;
+    const baseline = CM_BASELINE_WARDROBE[cmBaseGender] || CM_BASELINE_WARDROBE.female;
+    const pronoun = cmBaseGender === "male" ? "He" : "She";
     const vibeObj = STYLE_VIBES.find((v) => v.id === cmVibe);
     const outfitLine = [vibeObj ? vibeObj.phrase : "", cmOutfit.trim()].filter(Boolean).join(", ");
+    const close = `${REALISM_CLOSE} ${ANTI_TEXT_CLAUSE}`;
 
-    if (cmOutput === "sheet") {
+    if (output === "hero") {
       return [
-        `Create a character reference sheet as ONE single image: a clean 3×2 grid showing the exact same person — ${identity} — in six panels: [1] straight-on front view; [2] front-left three-quarter view; [3] right profile view; [4] straight back view; [5] neutral face close-up from the chest up; [6] full-body view.`,
-        outfitLine ? `The character wears ${outfitLine}.` : "",
-        `All panels: ${lightPhrase}, ${bgPhrase}. Consistent identity, clothing, lighting and color temperature across all six panels.`,
-        realismStack,
-      ].filter(Boolean).join(" ");
+        "A clean cinema-character-reference headshot, framed from forehead to upper chest with the face filling most of the frame.",
+        identityBlock,
+        `${pronoun} wears ${baseline}.`,
+        "Body squared to camera, head level, neutral relaxed expression, eyes to camera, lips closed and relaxed, subtle controlled energy.",
+        LOCKED_BACKDROP_LIGHT,
+        close,
+      ].join(" ");
     }
 
-    if (cmOutput === "fullbody") {
+    if (output === "expressions") {
+      const rowcol = ["top-left", "top-center", "top-right", "middle-left", "middle-center", "middle-right", "bottom-left", "bottom-center", "bottom-right"];
+      const panelLines = CHARMAKER_EXPRESSIONS_9.map((e, i) => `Panel ${i + 1} (${rowcol[i]}): ${e.phrase}.`).join("\n");
+      return [
+        `A 9-panel character expression reference sheet arranged as a 3-column by 3-row grid in a single frame, separated by thin clean white gutters between panels. Each panel shows the same single character from the same chest-up angle — ${identityBlock} ${pronoun} wears ${baseline}.`,
+        panelLines,
+        `${lockedBackdropUniform("nine")} The face and identity must be absolutely consistent across all nine panels — same bone structure, same skin, same hair, same proportions in every cell. Only the expression changes.`,
+        close,
+      ].join("\n\n");
+    }
+
+    if (output === "sheet") {
+      const wardrobe = outfitLine || baseline;
+      const detailObj = CM_DETAIL_OPTIONS.find((d) => d.id === cmDetail) || CM_DETAIL_OPTIONS[0];
+      const panels = [
+        "Panel 1 (top-left): Full body front — straight-on neutral stance, weight even, arms relaxed at the sides, full styling readable from head to footwear.",
+        "Panel 2 (top-center): Side profile close headshot, left side — tight crop from collarbone up, the character's left profile facing screen-right, hair fall, ear, jaw and chin geometry clearly readable.",
+        "Panel 3 (top-right): Full body back — straight back view, showing hair fall from behind, garment drape, and footwear from behind.",
+        "Panel 4 (bottom-left): Side profile close headshot, right side — tight crop from collarbone up, the character's right profile facing screen-left, a mirror of Panel 2 from the opposite side.",
+        "Panel 5 (bottom-center): Front face close headshot — tight crop from collarbone up, body squared to camera, face filling the frame, eyes to camera, skin texture and facial structure clearly readable.",
+        `Panel 6 (bottom-right): Detail shot — ${detailObj.clause}.`,
+      ].join("\n");
+      return [
+        `A 6-panel character reference sheet arranged as a 3-column by 2-row grid in a single horizontal frame, separated by thin clean white gutters between panels. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
+        panels,
+        `${lockedBackdropUniform("six")} Sharp focus across every panel. Identical character identity locked across all six panels — same face, same skin, same hair, same wardrobe, same accessories, same proportions in every cell.`,
+        close,
+      ].join("\n\n");
+    }
+
+    if (output === "fullbody") {
       if (!cmOutfit.trim()) return null;
       return [
-        `A professional head-to-toe full-body photograph of ${identity}.`,
-        `Wearing ${outfitLine}.`,
-        `${lightPhrase}, ${bgPhrase}.`,
-        "The full outfit is visible from head to toe in a natural standing pose, full-length frame.",
-        realismStack,
-      ].filter(Boolean).join(" ");
+        "A full-body character reference.",
+        identityBlock,
+        `The character wears ${outfitLine}, head to toe.`,
+        "Standing angled slightly from camera, weight shifted naturally, head level, neutral relaxed expression, eyes to camera. Framed full body from head to just below the footwear.",
+        LOCKED_BACKDROP_LIGHT,
+        close,
+      ].join(" ");
     }
 
-    if (cmOutput === "outfitsheet") {
+    if (output === "outfitsheet") {
       if (!cmOutfit.trim()) return null;
-      const panels = CHARMAKER_OUTFIT_PANELS.map((p, i) => `[${i + 1}] ${p}`).join("; ");
+      const panels = CHARMAKER_OUTFIT_PANELS.map((p, i) => `Panel ${i + 1}: ${p}.`).join("\n");
       return [
-        `Create an outfit reference sheet as ONE single image: a clean 3-panel horizontal grid of the exact same person — ${identity} — wearing ${outfitLine}.`,
-        `Panels: ${panels}.`,
-        "The clothing, fabric, colors and details must be pixel-consistent across all panels.",
-        "The face appears ONLY in the third anchor panel so downstream video tools take identity from that single face.",
-        `${lightPhrase}, ${bgPhrase}. Thin neutral dividers between panels.`,
-        realismStack,
-      ].filter(Boolean).join(" ");
-    }
-
-    if (cmOutput === "turnaround") {
-      return CHARMAKER_VIEWS.map((view, i) =>
-        [`${i + 1}. A character reference photograph of ${identity}.`, `View: ${view}.`, outfitLine ? `Wears ${outfitLine}.` : "", `${lightPhrase}, ${bgPhrase}.`, realismStack].filter(Boolean).join(" ")
-      ).join("\n\n");
+        `A 3-panel outfit reference sheet arranged as a single horizontal frame, separated by thin clean white gutters between panels. Every panel shows the same single character — ${identityBlock} — wearing ${outfitLine}.`,
+        panels,
+        "The clothing, fabric, colors and details must be pixel-consistent across all panels. The face appears ONLY in the third anchor panel so downstream video tools take identity from that single face.",
+        `${lockedBackdropUniform("three")}`,
+        close,
+      ].join("\n\n");
     }
 
     return null;
-  }, [cmOutput, cmIdentityText, cmBg, cmLight, cmSkinTexture, cmAntiAI, cmVibe, cmOutfit]);
+  }, [cmOutput, cmIdentityText, cmRefLocked, cmBaseGender, cmDetail, cmVibe, cmOutfit]);
 
   const contextClause = creativeContext && contextType ? contextType.phrase : "";
   const basePrompt = mode === "cinema" ? cinemaPrompt : mode === "product" ? productPrompt : mode === "location" ? locationPrompt : mode === "assemble" ? assemblePrompt : mode === "charmaker" ? characterPrompt : designPrompt;
@@ -459,7 +448,7 @@ export default function CinemaPromptStudio() {
   const promptText = basePrompt
     ? [contextClause, basePrompt, manualInstruction.trim()].filter(Boolean).join(" ")
     : null;
-  const isMultiPrompt = (mode === "product" && productOutput === "angles" && !!promptText) || (mode === "charmaker" && cmOutput === "turnaround" && !!promptText);
+  const isMultiPrompt = (mode === "product" && productOutput === "angles" && !!promptText);
 
   const handleCopy = () => {
     if (!promptText) return;
@@ -478,7 +467,8 @@ export default function CinemaPromptStudio() {
     designRef, brandFontField, thumbTypeId, textBlocks,
     assembleCharId, assembleProdId, assembleLocId, assembleDirection, assembleAspectId, assemblePx, assemblePy, assembleDist,
     cmOutput, cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild,
-    cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmBg, cmLight, cmSkinTexture, cmAntiAI, cmSource,
+    cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmSource,
+    cmBaseGender, cmRefLocked, cmDetail,
   });
 
   const restore = (d) => {
@@ -504,12 +494,13 @@ export default function CinemaPromptStudio() {
       assembleCharId: setAssembleCharId, assembleProdId: setAssembleProdId, assembleLocId: setAssembleLocId,
       assembleDirection: setAssembleDirection, assembleAspectId: setAssembleAspectId,
       assemblePx: setAssemblePx, assemblePy: setAssemblePy, assembleDist: setAssembleDist,
-      cmOutput: setCmOutput, cmAge: setCmAge, cmGender: setCmGender, cmSkin: setCmSkin,
+      cmOutput: (v) => setCmOutput(CHARMAKER_OUTPUTS.some((o) => o.id === v) ? v : "hero"),
+      cmAge: setCmAge, cmGender: setCmGender, cmSkin: setCmSkin,
       cmFace: setCmFace, cmEyes: setCmEyes, cmHairColor: setCmHairColor,
       cmHairLength: setCmHairLength, cmHairTexture: setCmHairTexture, cmBuild: setCmBuild,
       cmMarks: setCmMarks, cmIdentityText: setCmIdentityText, cmIdentityDirty: setCmIdentityDirty,
-      cmOutfit: setCmOutfit, cmVibe: setCmVibe, cmBg: setCmBg, cmLight: setCmLight,
-      cmSkinTexture: setCmSkinTexture, cmAntiAI: setCmAntiAI, cmSource: setCmSource,
+      cmOutfit: setCmOutfit, cmVibe: setCmVibe, cmSource: setCmSource,
+      cmBaseGender: setCmBaseGender, cmRefLocked: setCmRefLocked, cmDetail: setCmDetail,
     };
     Object.entries(d).forEach(([k, v]) => { if (setters[k]) setters[k](v); });
   };
@@ -1464,8 +1455,34 @@ export default function CinemaPromptStudio() {
             <Panel>
               <Eyebrow>02 — Identity</Eyebrow>
 
+              {/* Baseline wardrobe gender fork */}
+              <div className="mb-3">
+                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Baseline wardrobe</div>
+                <div className="flex gap-2">
+                  {[
+                    { id: "female", label: "Female" },
+                    { id: "male", label: "Male" },
+                  ].map((g) => (
+                    <Chip key={g.id} active={cmBaseGender === g.id} onClick={() => setCmBaseGender(g.id)}>{g.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <Toggle
+                checked={cmRefLocked}
+                onChange={setCmRefLocked}
+                label="Reference image locked"
+                description="On: prompt assumes you attach the saved character reference image in your AI tool. Identity is anchored to the reference, not re-described."
+              />
+
+              {cmRefLocked ? (
+                <p className="text-xs mt-1 mb-3" style={{ fontFamily: fBody, color: COLORS.steel }}>
+                  Identity is anchored to the attached reference image — the builder below is ignored while this is on.
+                </p>
+              ) : (
+              <>
               {/* Source toggle */}
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-2 mb-4 mt-2">
                 {[
                   { id: "scratch", label: "Build from scratch" },
                   { id: "extract", label: "Extract from photo" },
@@ -1578,6 +1595,8 @@ export default function CinemaPromptStudio() {
                   />
                 </>
               )}
+              </>
+              )}
 
               <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${COLORS.panelBorder}` }}>
                 <div className="flex items-center justify-between mb-2">
@@ -1612,7 +1631,7 @@ export default function CinemaPromptStudio() {
             {cmOutput === "hero" || cmOutput === "expressions" ? (
               <Panel>
                 <Eyebrow>03 — Outfit &amp; Style</Eyebrow>
-                <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>Identity plate &amp; expression sheet are always neutral — styling is locked off for consistency.</p>
+                <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>Identity plate &amp; expression sheet are always neutral — baseline wardrobe, locked studio backdrop and lighting. Styling is locked off for consistency.</p>
               </Panel>
             ) : (
               <Panel>
@@ -1625,31 +1644,19 @@ export default function CinemaPromptStudio() {
                   {STYLE_VIBES.map((v) => <Chip key={v.id} active={cmVibe === v.id} onClick={() => setCmVibe(cmVibe === v.id ? "" : v.id)}>{v.label}</Chip>)}
                 </div>
                 <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel }}>
-                  Outfit detail {(cmOutput === "fullbody" || cmOutput === "outfitsheet") ? <span style={{ color: COLORS.amber }}>— required for this output</span> : "(optional)"}
+                  Outfit detail {(cmOutput === "fullbody" || cmOutput === "outfitsheet") ? <span style={{ color: COLORS.amber }}>— required for this output</span> : "(optional — baseline wardrobe if empty)"}
                 </div>
                 <textarea value={cmOutfit} onChange={(e) => setCmOutfit(e.target.value)} placeholder="e.g. oversized cream linen shirt, dark jeans, white leather sneakers" rows={2} className="w-full rounded p-3 text-sm resize-none" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${(cmOutput === "fullbody" || cmOutput === "outfitsheet") ? COLORS.amberDim : COLORS.panelBorder}` }}/>
+                {cmOutput === "sheet" && (
+                  <div className="mt-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Panel 6 — detail shot</div>
+                    <div className="flex flex-wrap">
+                      {CM_DETAIL_OPTIONS.map((d) => <Chip key={d.id} active={cmDetail === d.id} onClick={() => setCmDetail(d.id)}>{d.label}</Chip>)}
+                    </div>
+                  </div>
+                )}
               </Panel>
             )}
-
-            {cmOutput !== "hero" && cmOutput !== "expressions" && (
-              <Panel>
-                <Eyebrow>04 — Lighting &amp; Background</Eyebrow>
-                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Lighting</div>
-                <div className="flex flex-wrap mb-3">
-                  {CM_LIGHTS.map((l) => <Chip key={l.id} active={cmLight === l.id} onClick={() => setCmLight(l.id)}>{l.label}</Chip>)}
-                </div>
-                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Background</div>
-                <div className="flex flex-wrap">
-                  {CM_BACKGROUNDS.map((b) => <Chip key={b.id} active={cmBg === b.id} onClick={() => setCmBg(b.id)}>{b.label}</Chip>)}
-                </div>
-              </Panel>
-            )}
-
-            <Panel>
-              <Eyebrow>{cmOutput === "hero" || cmOutput === "expressions" ? "03" : "05"} — Realism Stack</Eyebrow>
-              <Toggle checked={cmSkinTexture} onChange={setCmSkinTexture} label="Real skin texture" description="Visible pores, fine hairs, subtle sebaceous variation — no AI smoothing" />
-              <Toggle checked={cmAntiAI} onChange={setCmAntiAI} label="Anti-AI clause" description="Explicit instruction to avoid plastic skin, uncanny valley, AI artifacts" />
-            </Panel>
             </>)}
 
             {/* Creative Context — global */}
