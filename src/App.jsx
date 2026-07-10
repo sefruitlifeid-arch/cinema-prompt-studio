@@ -1685,9 +1685,9 @@ export default function CinemaPromptStudio() {
           </div>
 
           {/* RIGHT: output */}
-          <div className="w-full flex-shrink-0" style={{ maxWidth: "100%" }}>
+          <div className="w-full lg:w-96 flex-shrink-0" style={{ maxWidth: "100%" }}>
             <div className="lg:sticky lg:top-6" style={{ width: "100%", minWidth: 0 }}>
-              <div className="lg:w-96">
+              <div>
                 <div className="rounded-lg p-5" style={{ backgroundColor: COLORS.paper, minHeight: 260 }}>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs tracking-widest uppercase" style={{ fontFamily: fDisplay, color: COLORS.ink, letterSpacing: "0.15em" }}>
