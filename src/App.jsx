@@ -12,7 +12,7 @@ import {
   ASPECTS, THUMB_LAYOUTS, COLOR_TREATMENTS, RENDER_STYLES, TEXT_STYLES, FONT_STYLE_CHIPS, THUMB_TYPES,
   EMPTY_BRAND,
   CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9, CHARMAKER_OUTFIT_PANELS,
-  ANTI_TEXT_CLAUSE, LOCKED_BACKDROP_LIGHT, REALISM_CLOSE, REF_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS,
+  ANTI_TEXT_CLAUSE, LOCKED_BACKDROP_LIGHT, REALISM_CLOSE, REF_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
   STYLE_VIBES,
 } from "./constants/data";
@@ -124,15 +124,20 @@ export default function CinemaPromptStudio() {
   const [locations, setLocations] = useState([]);
   const [locName, setLocName] = useState("");
   const [locSavingOpen, setLocSavingOpen] = useState(false);
-  // Scene Assembler state
-  const [assembleCharId, setAssembleCharId] = useState("");
-  const [assembleProdId, setAssembleProdId] = useState("");
-  const [assembleLocId, setAssembleLocId] = useState("");
-  const [assembleDirection, setAssembleDirection] = useState("");
-  const [assembleAspectId, setAssembleAspectId] = useState("free");
-  const [assemblePx, setAssemblePx] = useState(0.5);
-  const [assemblePy, setAssemblePy] = useState(0.5);
-  const [assembleDist, setAssembleDist] = useState(0.5);
+  // Storyboard state (mode id stays "assemble" for preset compatibility)
+  const newFrame = () => ({ id: Date.now().toString() + Math.random().toString(36).slice(2, 6), shotType: "chestup", angleRot: 0, action: "", expressionPhrase: "", px: 0.5, py: 0.5, dist: 0.5, blockingClause: "" });
+  const [sbCharacterId, setSbCharacterId] = useState("");
+  const [sbProductId, setSbProductId] = useState("");
+  const [sbLocationId, setSbLocationId] = useState("");
+  const [sbTimeOfDay, setSbTimeOfDay] = useState("golden");
+  const [sbWeather, setSbWeather] = useState("clear");
+  const [sbLighting, setSbLighting] = useState("soft-daylight");
+  const [sbDirection, setSbDirection] = useState("");
+  const [sbAspect, setSbAspect] = useState("169");
+  const [sbRefLocked, setSbRefLocked] = useState(false);
+  const [sbFrames, setSbFrames] = useState(() => [newFrame()]);
+  const [sbCopiedId, setSbCopiedId] = useState("");
+  const [sbSheetCopied, setSbSheetCopied] = useState(false);
   // Character placement (Cinema)
   const [charPlacement, setCharPlacement] = useState(false);
   const [charPx, setCharPx] = useState(0.5);
@@ -343,25 +348,96 @@ export default function CinemaPromptStudio() {
     return [`A hero establishing shot of ${identity}.`, `${atmo.charAt(0).toUpperCase() + atmo.slice(1)}.`, "Capture the full character and spatial depth of the environment — architecture, materials, atmosphere and scale in one frame.", brandClause, closing].filter(Boolean).join(" ");
   }, [locationDesc, locationOutput, timeOfDay, weatherId, brandClause]);
 
-  // ── Scene Assembler compiler ────────────────────────────────────────────────
+  // ── Storyboard compiler ─────────────────────────────────────────────────────
+  const sbContinuityClause = "Same character, same wardrobe, same location, and same lighting as every other frame in this scene — identity and continuity locked.";
+  const sbSceneLocks = useMemo(() => {
+    const ch = characters.find((c) => c.id === sbCharacterId);
+    const pr = products.find((p) => p.id === sbProductId);
+    const lo = locations.find((l) => l.id === sbLocationId);
+    if (!ch || !lo) return null;
+    const todObj = TIME_OF_DAY.find((t) => t.id === sbTimeOfDay);
+    const wObj = WEATHER_CONDITIONS.find((w) => w.id === sbWeather);
+    const lightObj = SB_LIGHTING.find((l) => l.id === sbLighting) || SB_LIGHTING[0];
+    return {
+      charLock: sbRefLocked ? REF_ANCHOR_CLAUSE : `The character: ${ch.text.replace(/\.+$/, "")}.`,
+      prodLock: pr ? `The product must match the product reference exactly: ${pr.text.replace(/\.+$/, "")}.` : "",
+      locLock: `The location: ${lo.text.replace(/\.+$/, "")}, ${todObj ? todObj.phrase : ""}, ${wObj ? wObj.phrase : ""}.`,
+      lighting: `Scene lighting: ${lightObj.phrase}.`,
+      charText: ch.text, locText: lo.text,
+    };
+  }, [characters, products, locations, sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbRefLocked]);
+
+  const sbAspectObj = PHOTO_ASPECTS.find((a) => a.id === sbAspect);
+  const sbAspectClause = sbAspectObj && sbAspectObj.phrase ? `${sbAspectObj.phrase.charAt(0).toUpperCase()}${sbAspectObj.phrase.slice(1)}.` : "";
+
+  // Each frame compiles to a FULL STANDALONE prompt (context first, manual last).
+  const sbFramePrompts = useMemo(() => {
+    if (!sbSceneLocks) return [];
+    const ctx = creativeContext && contextType ? contextType.phrase : "";
+    return sbFrames.map((f) => {
+      const shotObj = SHOT_TYPES.find((s) => s.id === f.shotType) || SHOT_TYPES[1];
+      const deltas = `A ${shotObj.phrase}, ${anglePhrase(f.angleRot, 0, 0)}.`;
+      return [
+        ctx,
+        sbSceneLocks.charLock,
+        sbSceneLocks.prodLock,
+        sbSceneLocks.locLock,
+        sbSceneLocks.lighting,
+        sbDirection.trim(),
+        deltas,
+        f.action.trim() ? `The character is ${f.action.trim().replace(/\.+$/, "")}.` : "",
+        f.expressionPhrase.trim() ? `Their face shows ${f.expressionPhrase.trim().replace(/\.+$/, "")}.` : "",
+        placementPhrase(f.px, f.py, f.dist),
+        f.blockingClause,
+        sbContinuityClause,
+        sbAspectClause,
+        REALISM_CLOSE,
+        ANTI_TEXT_CLAUSE,
+        manualInstruction.trim(),
+      ].filter(Boolean).join(" ");
+    });
+  }, [sbSceneLocks, sbFrames, sbDirection, sbAspectClause, creativeContext, contextType, manualInstruction]);
+
   const assemblePrompt = useMemo(() => {
-    const ac = characters.find((c) => c.id === assembleCharId);
-    const ap = products.find((p) => p.id === assembleProdId);
-    const al = locations.find((l) => l.id === assembleLocId);
-    if (!ac && !ap && !al && !assembleDirection.trim()) return null;
-    const aAspect = PHOTO_ASPECTS.find((a) => a.id === assembleAspectId);
-    const parts = ["Combine the attached reference images into one photorealistic scene."];
-    if (ac) parts.push(`The person must match the character reference exactly: ${ac.text}`);
-    if (ap) parts.push(`The product must match the product reference exactly: ${ap.text}`);
-    if (al) parts.push(`The location must match the location reference exactly: ${al.text}`);
-    if (assembleDirection.trim()) parts.push(assembleDirection.trim());
-    parts.push(placementPhrase(assemblePx, assemblePy, assembleDist));
-    parts.push("Match lighting, perspective, color temperature and grain across all combined elements so the composite is seamless — one consistent photograph, not a collage.");
-    if (brandClause) parts.push(brandClause);
-    if (aAspect && aAspect.phrase) parts.push(`${aAspect.phrase.charAt(0).toUpperCase()}${aAspect.phrase.slice(1)}.`);
-    parts.push("Real photographic quality — no CGI look, no AI artifacts.");
-    return parts.filter(Boolean).join(" ");
-  }, [assembleCharId, assembleProdId, assembleLocId, assembleDirection, assembleAspectId, assemblePx, assemblePy, assembleDist, characters, products, locations, brandClause]);
+    if (!sbFramePrompts.length) return null;
+    return sbFramePrompts.map((t, i) => `FRAME ${i + 1}\n${t}`).join("\n\n");
+  }, [sbFramePrompts]);
+
+  // Storyboard sheet: one grid image containing all frames (previz overview).
+  const sbSheetPrompt = useMemo(() => {
+    if (!sbSceneLocks || sbFrames.length < 2) return null;
+    const n = sbFrames.length;
+    const cols = n <= 4 ? 2 : n <= 6 ? 3 : 4;
+    const pos = (i) => `row ${Math.floor(i / cols) + 1}, column ${(i % cols) + 1}`;
+    const lightObj = SB_LIGHTING.find((l) => l.id === sbLighting) || SB_LIGHTING[0];
+    const panelLines = sbFrames.map((f, i) => {
+      const shotObj = SHOT_TYPES.find((s) => s.id === f.shotType) || SHOT_TYPES[1];
+      return `Panel ${i + 1} (${pos(i)}): ${shotObj.phrase}, ${anglePhrase(f.angleRot, 0, 0)}${f.action.trim() ? ` — ${f.action.trim().replace(/\.+$/, "")}` : ""}.${f.expressionPhrase.trim() ? ` Expression: ${f.expressionPhrase.trim().replace(/\.+$/, "")}.` : ""}`;
+    }).join("\n");
+    return [
+      `A ${n}-panel storyboard previz sheet arranged as a ${cols}-column by 2-row grid in a single frame, separated by thin clean white gutters between panels. Every panel shows the same single character in the same location. ${sbSceneLocks.charLock} ${sbSceneLocks.locLock} ${sbSceneLocks.lighting}${sbDirection.trim() ? ` ${sbDirection.trim().replace(/\.+$/, "")}.` : ""}`,
+      panelLines,
+      `The backdrop of every panel is the location environment itself under the same scene lighting — identical character identity and location continuity locked across all panels.`,
+      `${REALISM_CLOSE} ${ANTI_TEXT_CLAUSE}`,
+    ].join("\n\n");
+  }, [sbSceneLocks, sbFrames, sbLighting, sbDirection]);
+
+  // Frame list operations
+  const sbAddFrame = () => setSbFrames((fs) => (fs.length >= 8 ? fs : [...fs, newFrame()]));
+  const sbDuplicateFrame = (i) => setSbFrames((fs) => {
+    if (fs.length >= 8) return fs;
+    const copy = { ...fs[i], id: newFrame().id };
+    return [...fs.slice(0, i + 1), copy, ...fs.slice(i + 1)];
+  });
+  const sbDeleteFrame = (i) => setSbFrames((fs) => (fs.length <= 1 ? fs : fs.filter((_, idx) => idx !== i)));
+  const sbMoveFrame = (i, dir) => setSbFrames((fs) => {
+    const j = i + dir;
+    if (j < 0 || j >= fs.length) return fs;
+    const next = [...fs];
+    [next[i], next[j]] = [next[j], next[i]];
+    return next;
+  });
+  const sbPatchFrame = (i, patch) => setSbFrames((fs) => fs.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
 
   // ── Character Maker compiler (V4.1: locked studio formula) ─────────────────
   const characterPrompt = useMemo(() => {
@@ -444,11 +520,12 @@ export default function CinemaPromptStudio() {
 
   const contextClause = creativeContext && contextType ? contextType.phrase : "";
   const basePrompt = mode === "cinema" ? cinemaPrompt : mode === "product" ? productPrompt : mode === "location" ? locationPrompt : mode === "assemble" ? assemblePrompt : mode === "charmaker" ? characterPrompt : designPrompt;
-  // contextClause goes FIRST — classifiers weight the opening more heavily
+  // contextClause goes FIRST — classifiers weight the opening more heavily.
+  // Storyboard frames are already full standalone prompts (context + manual baked in).
   const promptText = basePrompt
-    ? [contextClause, basePrompt, manualInstruction.trim()].filter(Boolean).join(" ")
+    ? (mode === "assemble" ? basePrompt : [contextClause, basePrompt, manualInstruction.trim()].filter(Boolean).join(" "))
     : null;
-  const isMultiPrompt = (mode === "product" && productOutput === "angles" && !!promptText);
+  const isMultiPrompt = (mode === "product" && productOutput === "angles" && !!promptText) || (mode === "assemble" && sbFrames.length > 1 && !!promptText);
 
   const handleCopy = () => {
     if (!promptText) return;
@@ -465,7 +542,7 @@ export default function CinemaPromptStudio() {
     locationOutput, locationDesc, timeOfDay, weatherId,
     designDesc, aspectId, thumbLayout, colorTreat, renderStyle, textStyle, designLegibility,
     designRef, brandFontField, thumbTypeId, textBlocks,
-    assembleCharId, assembleProdId, assembleLocId, assembleDirection, assembleAspectId, assemblePx, assemblePy, assembleDist,
+    sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbDirection, sbAspect, sbRefLocked, sbFrames,
     cmOutput, cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild,
     cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmSource,
     cmBaseGender, cmRefLocked, cmDetail,
@@ -491,9 +568,10 @@ export default function CinemaPromptStudio() {
       designDesc: setDesignDesc, aspectId: setAspectId, thumbLayout: setThumbLayout,
       colorTreat: setColorTreat, renderStyle: setRenderStyle, textStyle: setTextStyle, designLegibility: setDesignLegibility,
       designRef: setDesignRef, brandFontField: setBrandFontField, thumbTypeId: setThumbTypeId, textBlocks: setTextBlocks,
-      assembleCharId: setAssembleCharId, assembleProdId: setAssembleProdId, assembleLocId: setAssembleLocId,
-      assembleDirection: setAssembleDirection, assembleAspectId: setAssembleAspectId,
-      assemblePx: setAssemblePx, assemblePy: setAssemblePy, assembleDist: setAssembleDist,
+      sbCharacterId: setSbCharacterId, sbProductId: setSbProductId, sbLocationId: setSbLocationId,
+      sbTimeOfDay: setSbTimeOfDay, sbWeather: setSbWeather, sbLighting: setSbLighting,
+      sbDirection: setSbDirection, sbAspect: setSbAspect, sbRefLocked: setSbRefLocked,
+      sbFrames: (v) => setSbFrames(Array.isArray(v) && v.length ? v.map((f) => ({ ...newFrame(), ...f })) : [newFrame()]),
       cmOutput: (v) => setCmOutput(CHARMAKER_OUTPUTS.some((o) => o.id === v) ? v : "hero"),
       cmAge: setCmAge, cmGender: setCmGender, cmSkin: setCmSkin,
       cmFace: setCmFace, cmEyes: setCmEyes, cmHairColor: setCmHairColor,
@@ -536,6 +614,7 @@ export default function CinemaPromptStudio() {
     const next = characters.filter((c) => c.id !== id);
     setCharacters(next);
     store.write(CHAR_KEY, next);
+    if (sbCharacterId === id) setSbCharacterId("");
   };
 
   // Product library
@@ -553,6 +632,7 @@ export default function CinemaPromptStudio() {
     setProducts(next);
     store.write(PRODUCT_KEY, next);
     if (injectedProductId === id) setInjectedProductId("");
+    if (sbProductId === id) setSbProductId("");
   };
 
   // Location library
@@ -565,7 +645,7 @@ export default function CinemaPromptStudio() {
   const deleteLocation = (id) => {
     const next = locations.filter((l) => l.id !== id);
     setLocations(next); store.write(LOCATION_KEY, next);
-    if (assembleLocId === id) setAssembleLocId("");
+    if (sbLocationId === id) setSbLocationId("");
   };
 
   const saveCharacterFromCM = () => {
@@ -729,7 +809,7 @@ export default function CinemaPromptStudio() {
             { id: "product", label: "Product Photo" },
             { id: "location", label: "Location / Set" },
             { id: "design", label: "Design / Thumbnail" },
-            { id: "assemble", label: "Assemble" },
+            { id: "assemble", label: "Storyboard" },
             { id: "charmaker", label: "Character Maker" },
           ].map((m) => (
             <button
@@ -1366,7 +1446,7 @@ export default function CinemaPromptStudio() {
                     </button>
                   )}
                 </div>
-                {locations.length === 0 ? <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>No saved locations yet — saved locations appear in Cinema mode and Scene Assembler.</p> : (
+                {locations.length === 0 ? <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>No saved locations yet — saved locations appear in Cinema mode and Storyboard.</p> : (
                   <div className="flex flex-wrap gap-2">
                     {locations.map((l) => (
                       <div key={l.id} className="flex items-center rounded" style={{ border: `1px solid ${COLORS.panelBorder}` }}>
@@ -1396,43 +1476,116 @@ export default function CinemaPromptStudio() {
             </Panel>
             </>)}
 
-            {/* ─── SCENE ASSEMBLER ────────────────────────────────────────── */}
-            {mode === "assemble" && (
+            {/* ─── STORYBOARD ─────────────────────────────────────────────── */}
+            {mode === "assemble" && (<>
             <Panel>
-              <Eyebrow>Scene Assembler</Eyebrow>
-              <p className="text-xs mb-4" style={{ fontFamily: fBody, color: COLORS.steel }}>Attach all reference images in your gen tool. This prompt locks each asset's identity so the composite is seamless. All assets are optional.</p>
+              <Eyebrow>01 — Scene Locks</Eyebrow>
+              <p className="text-xs mb-4" style={{ fontFamily: fBody, color: COLORS.steel }}>One scene = locked assets + N frames. Every frame compiles to a full standalone prompt with identical lock sentences, so external tools keep continuity between generations.</p>
               <div className="mb-4">
-                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Character (from library)</div>
-                {characters.length === 0 ? <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>No saved characters — save one in Cinema mode.</p> : (
-                  <div className="flex flex-wrap"><Chip active={!assembleCharId} onClick={() => setAssembleCharId("")}>None</Chip>{characters.map((c) => <Chip key={c.id} active={assembleCharId === c.id} onClick={() => setAssembleCharId(c.id)} title={c.text}>{c.name}</Chip>)}</div>
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Character (from library) <span style={{ color: COLORS.amber }}>— required</span></div>
+                {characters.length === 0 ? <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>No saved characters — save one in Character Maker or Cinema mode.</p> : (
+                  <div className="flex flex-wrap">{characters.map((c) => <Chip key={c.id} active={sbCharacterId === c.id} onClick={() => setSbCharacterId(sbCharacterId === c.id ? "" : c.id)} title={c.text}>{c.name}</Chip>)}</div>
                 )}
               </div>
               <div className="mb-4">
-                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Product (from library)</div>
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Product (from library) — optional</div>
                 {products.length === 0 ? <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>No saved products — save one in Product Photo mode.</p> : (
-                  <div className="flex flex-wrap"><Chip active={!assembleProdId} onClick={() => setAssembleProdId("")}>None</Chip>{products.map((p) => <Chip key={p.id} active={assembleProdId === p.id} onClick={() => setAssembleProdId(p.id)} title={p.text}>{p.name}</Chip>)}</div>
+                  <div className="flex flex-wrap"><Chip active={!sbProductId} onClick={() => setSbProductId("")}>None</Chip>{products.map((p) => <Chip key={p.id} active={sbProductId === p.id} onClick={() => setSbProductId(p.id)} title={p.text}>{p.name}</Chip>)}</div>
                 )}
               </div>
               <div className="mb-4">
-                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Location (from library)</div>
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Location (from library) <span style={{ color: COLORS.amber }}>— required</span></div>
                 {locations.length === 0 ? <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>No saved locations — save one in Location / Set mode.</p> : (
-                  <div className="flex flex-wrap"><Chip active={!assembleLocId} onClick={() => setAssembleLocId("")}>None</Chip>{locations.map((l) => <Chip key={l.id} active={assembleLocId === l.id} onClick={() => setAssembleLocId(l.id)} title={l.text}>📍 {l.name}</Chip>)}</div>
+                  <div className="flex flex-wrap">{locations.map((l) => <Chip key={l.id} active={sbLocationId === l.id} onClick={() => setSbLocationId(sbLocationId === l.id ? "" : l.id)} title={l.text}>📍 {l.name}</Chip>)}</div>
                 )}
               </div>
               <div className="mb-4">
-                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Scene direction — what is happening</div>
-                <textarea value={assembleDirection} onChange={(e) => setAssembleDirection(e.target.value)} placeholder="e.g. the character is holding the product at chest height in the cafe, looking directly at camera" rows={3} className="w-full rounded p-3 text-sm resize-none" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}/>
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Time of day</div>
+                <div className="flex flex-wrap">{TIME_OF_DAY.map((t) => <Chip key={t.id} active={sbTimeOfDay === t.id} onClick={() => setSbTimeOfDay(t.id)}>{t.label}</Chip>)}</div>
               </div>
               <div className="mb-4">
-                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Character placement in frame</div>
-                <PlacementCanvas px={assemblePx} py={assemblePy} dist={assembleDist} setPx={setAssemblePx} setPy={setAssemblePy} setDist={setAssembleDist}/>
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Weather</div>
+                <div className="flex flex-wrap">{WEATHER_CONDITIONS.map((w) => <Chip key={w.id} active={sbWeather === w.id} onClick={() => setSbWeather(w.id)}>{w.label}</Chip>)}</div>
               </div>
-              <div>
-                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Aspect ratio</div>
-                <div className="flex flex-wrap">{PHOTO_ASPECTS.map((a) => <Chip key={a.id} active={a.id === assembleAspectId} onClick={() => setAssembleAspectId(a.id)}>{a.label}</Chip>)}</div>
+              <div className="mb-4">
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Scene lighting / mood</div>
+                <div className="flex flex-wrap">{SB_LIGHTING.map((l) => <Chip key={l.id} active={sbLighting === l.id} onClick={() => setSbLighting(l.id)}>{l.label}</Chip>)}</div>
               </div>
+              <div className="mb-4">
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Scene direction — what is happening across the scene</div>
+                <textarea value={sbDirection} onChange={(e) => setSbDirection(e.target.value)} placeholder="e.g. the character walks through the cafe carrying the product, increasingly hurried" rows={3} className="w-full rounded p-3 text-sm resize-none" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}/>
+              </div>
+              <div className="mb-4">
+                <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Aspect ratio (written into every frame prompt)</div>
+                <div className="flex flex-wrap">{["169", "916", "11", "45"].map((id) => { const a = PHOTO_ASPECTS.find((x) => x.id === id); return <Chip key={id} active={sbAspect === id} onClick={() => setSbAspect(id)}>{a.label}</Chip>; })}</div>
+              </div>
+              <Toggle
+                checked={sbRefLocked}
+                onChange={setSbRefLocked}
+                label="Reference images locked"
+                description="On: the character lock sentence anchors to the attached reference image instead of re-describing the identity."
+              />
+              {sbSheetPrompt && (
+                <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${COLORS.panelBorder}` }}>
+                  <button onClick={() => copyText(sbSheetPrompt, () => { setSbSheetCopied(true); setTimeout(() => setSbSheetCopied(false), 1500); })} className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs" style={{ fontFamily: fBody, backgroundColor: sbSheetCopied ? COLORS.amber : "transparent", color: sbSheetCopied ? COLORS.console : COLORS.amber, border: `1px solid ${COLORS.amber}`, fontWeight: 600 }}>
+                    {sbSheetCopied ? <Check size={12}/> : <Copy size={12}/>} Copy storyboard sheet
+                  </button>
+                  <p className="text-xs mt-2" style={{ fontFamily: fBody, color: COLORS.steel }}>One prompt → one grid image previewing all {sbFrames.length} frames.</p>
+                </div>
+              )}
             </Panel>
-            )}
+
+            {sbFrames.map((f, i) => (
+              <Panel key={f.id}>
+                <div className="flex items-center justify-between mb-3">
+                  <Eyebrow>Frame {i + 1}</Eyebrow>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => sbMoveFrame(i, -1)} disabled={i === 0} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}`, opacity: i === 0 ? 0.35 : 1 }}><ChevronUp size={12}/></button>
+                    <button onClick={() => sbMoveFrame(i, 1)} disabled={i === sbFrames.length - 1} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}`, opacity: i === sbFrames.length - 1 ? 0.35 : 1 }}><ChevronDown size={12}/></button>
+                    <button onClick={() => sbDuplicateFrame(i)} disabled={sbFrames.length >= 8} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}`, opacity: sbFrames.length >= 8 ? 0.35 : 1 }}>Duplicate</button>
+                    <button onClick={() => sbDeleteFrame(i)} disabled={sbFrames.length <= 1} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}`, opacity: sbFrames.length <= 1 ? 0.35 : 1 }}><X size={12}/></button>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Shot type</div>
+                  <div className="flex flex-wrap">{SHOT_TYPES.map((s) => <Chip key={s.id} active={f.shotType === s.id} onClick={() => sbPatchFrame(i, { shotType: s.id })}>{s.label}</Chip>)}</div>
+                </div>
+                <div className="mb-3">
+                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Camera angle</div>
+                  <div className="flex flex-wrap">{ANGLE_DIRECTIONS.map((a) => <Chip key={a.label} active={f.angleRot === a.rot} onClick={() => sbPatchFrame(i, { angleRot: a.rot })}>{a.label}</Chip>)}</div>
+                </div>
+                <div className="mb-3">
+                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Action — what the character does in this frame</div>
+                  <textarea value={f.action} onChange={(e) => sbPatchFrame(i, { action: e.target.value })} placeholder="e.g. pushing the door open, glancing back over one shoulder" rows={2} className="w-full rounded p-3 text-sm resize-none" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}/>
+                </div>
+                <div className="mb-3">
+                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Expression</div>
+                  <ChipField grouped options={EXPRESSION_GROUPS} value={f.expressionPhrase} onChange={(v) => sbPatchFrame(i, { expressionPhrase: v })} placeholder="Or describe the expression…" rows={2}/>
+                </div>
+                <div className="mb-3">
+                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Character placement</div>
+                  <PlacementCanvas px={f.px} py={f.py} dist={f.dist} setPx={(v) => sbPatchFrame(i, { px: v })} setPy={(v) => sbPatchFrame(i, { py: v })} setDist={(v) => sbPatchFrame(i, { dist: v })} ratio={{ "169": 16 / 9, "916": 9 / 16, "11": 1, "45": 4 / 5 }[sbAspect] || 16 / 9}/>
+                </div>
+                {sbFramePrompts[i] ? (
+                  <div className="rounded p-3" style={{ backgroundColor: COLORS.console, border: `1px solid ${COLORS.panelBorder}` }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs tracking-widest uppercase" style={{ fontFamily: fDisplay, color: COLORS.steel, letterSpacing: "0.1em" }}>Frame {i + 1} prompt</span>
+                      <button onClick={() => copyText(sbFramePrompts[i], () => { setSbCopiedId(f.id); setTimeout(() => setSbCopiedId(""), 1500); })} className="flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, backgroundColor: sbCopiedId === f.id ? COLORS.amber : "transparent", color: sbCopiedId === f.id ? COLORS.console : COLORS.amber, border: `1px solid ${COLORS.amber}` }}>
+                        {sbCopiedId === f.id ? <Check size={11}/> : <Copy size={11}/>} Copy
+                      </button>
+                    </div>
+                    <p className="text-xs leading-relaxed" style={{ fontFamily: fBody, color: COLORS.paper, opacity: 0.8 }}>{sbFramePrompts[i]}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>Pick a character and a location above to compile this frame.</p>
+                )}
+              </Panel>
+            ))}
+
+            <button onClick={sbAddFrame} disabled={sbFrames.length >= 8} className="w-full rounded py-2.5 mb-4 text-sm" style={{ fontFamily: fBody, color: sbFrames.length >= 8 ? COLORS.steel : COLORS.amber, border: `1px dashed ${sbFrames.length >= 8 ? COLORS.panelBorder : COLORS.amberDim}`, opacity: sbFrames.length >= 8 ? 0.5 : 1 }}>
+              + Add frame {sbFrames.length >= 8 ? "(max 8)" : `(${sbFrames.length}/8)`}
+            </button>
+            </>)}
 
             {/* ─── CHARACTER MAKER ─────────────────────────────────────── */}
             {mode === "charmaker" && (<>
@@ -1614,7 +1767,7 @@ export default function CinemaPromptStudio() {
                   )}
                 </div>
                 {characters.length === 0 ? (
-                  <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>Saved characters appear here and in Cinema mode and Scene Assembler.</p>
+                  <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>Saved characters appear here and in Cinema mode and Storyboard.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {characters.map((c) => (
@@ -1717,7 +1870,7 @@ export default function CinemaPromptStudio() {
                     </p>
                   ) : (
                     <p className="text-sm italic leading-relaxed" style={{ fontFamily: fBody, color: COLORS.ink, opacity: 0.55 }}>
-                      {mode === "cinema" ? "Describe your character above (or switch to Reference photo) to compile your prompt." : mode === "product" ? "Describe your product above to compile your prompt." : mode === "charmaker" ? ((cmOutput === "fullbody" || cmOutput === "outfitsheet") && cmIdentityText.trim() && !characterPrompt ? "Describe the outfit to compile this output." : "Build your character identity above to compile your prompt.") : "Describe your design brief above to compile your prompt."}
+                      {mode === "cinema" ? "Describe your character above (or switch to Reference photo) to compile your prompt." : mode === "product" ? "Describe your product above to compile your prompt." : mode === "charmaker" ? ((cmOutput === "fullbody" || cmOutput === "outfitsheet") && cmIdentityText.trim() && !characterPrompt ? "Describe the outfit to compile this output." : "Build your character identity above to compile your prompt.") : mode === "assemble" ? "Pick a character and a location from the libraries above to compile your frames." : "Describe your design brief above to compile your prompt."}
                     </p>
                   )}
 
@@ -1728,7 +1881,7 @@ export default function CinemaPromptStudio() {
                         : mode === "product"
                         ? `${PRODUCT_OUTPUTS.find((o) => o.id === productOutput).label} · ${material.label} · ${prodLight.label}${applyBrand && brandHasContent ? " · BRAND" : ""}`
                         : mode === "location" ? `${LOCATION_OUTPUTS.find((o) => o.id === locationOutput).label} · ${tod ? tod.label : ""} · ${weather ? weather.label : ""}${applyBrand && brandHasContent ? " · BRAND" : ""}`
-                        : mode === "assemble" ? `Assemble · ${[assembleCharId && "char", assembleProdId && "product", assembleLocId && "location"].filter(Boolean).join(" + ") || "no assets yet"}`
+                        : mode === "assemble" ? `Storyboard · ${sbFrames.length} frame${sbFrames.length > 1 ? "s" : ""} · ${PHOTO_ASPECTS.find((a) => a.id === sbAspect)?.label ?? ""}`
                         : mode === "charmaker" ? `${CHARMAKER_OUTPUTS.find((o) => o.id === cmOutput)?.label ?? "Character Maker"} · ${cmSource}`
                         : `${aspect.label} · ${thumbType.label}${applyBrand && brandHasContent ? " · BRAND" : ""}`}
                     </p>

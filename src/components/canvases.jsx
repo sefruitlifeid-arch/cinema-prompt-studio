@@ -3,10 +3,10 @@ import { COLORS, fDisplay, fBody, fMono } from "../constants/theme";
 import { placementPhrase } from "../utils/phrases";
 
 // Draggable placement canvas: X = left/right, Y = back(top)/front(bottom)
-export function PlacementCanvas({ px, py, dist, setPx, setPy, setDist }) {
+export function PlacementCanvas({ px, py, dist, setPx, setPy, setDist, ratio }) {
   const ref = React.useRef(null);
   const dragging = React.useRef(false);
-  const W = 260, H = 160;
+  const W = 260, H = ratio ? Math.round(260 / ratio) : 160;
   const onDown = () => { dragging.current = true; };
   const onUp = () => { dragging.current = false; };
   const onMove = (e) => {
