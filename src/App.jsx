@@ -12,11 +12,11 @@ import {
   ASPECTS, THUMB_LAYOUTS, COLOR_TREATMENTS, RENDER_STYLES, TEXT_STYLES, FONT_STYLE_CHIPS, THUMB_TYPES,
   EMPTY_BRAND,
   CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9, CHARMAKER_OUTFIT_PANELS,
-  ANTI_TEXT_CLAUSE, LOCKED_BACKDROP_LIGHT, REALISM_CLOSE, REF_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
+  ANTI_TEXT_CLAUSE, LOCKED_BACKDROP_LIGHT, REALISM_CLOSE, REF_ANCHOR_CLAUSE, OUTFIT_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
   STYLE_VIBES,
 } from "./constants/data";
-import { anglePhrase, placementPhrase, textPositionPhrase, polar, bladePoints } from "./utils/phrases";
+import { anglePhrase, placementPhrase, textPositionPhrase, polar, bladePoints, realismForShot } from "./utils/phrases";
 import { PRESET_KEY, CHAR_KEY, PRODUCT_KEY, BRAND_KEY, LOCATION_KEY, memStore, store, copyText } from "./utils/storage";
 import { Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper } from "./components/primitives";
 import { PlacementCanvas, TextPlacement, AngleOrbit } from "./components/canvases";
@@ -52,7 +52,8 @@ export default function CinemaPromptStudio() {
   const [shotId, setShotId] = useState("chestup");
   const [rotation, setRotation] = useState(30);
   const [tilt, setTilt] = useState(0);
-  const [zoom, setZoom] = useState(0);
+  const [cineRefLocked, setCineRefLocked] = useState(false);
+  const [cineOutfitRef, setCineOutfitRef] = useState(false);
   const [photoAspectId, setPhotoAspectId] = useState("free");
   const [compId, setCompId] = useState("thirds");
   const [skinTexture, setSkinTexture] = useState(true);
@@ -217,35 +218,37 @@ export default function CinemaPromptStudio() {
   // ---------- Cinema compiler ----------
   const cinemaPrompt = useMemo(() => {
     const isRef = identitySource === "reference";
-    if (!isRef && !character.trim()) return null;
-    const opening = `A ${genre.mood} ${shot.phrase}, ${anglePhrase(rotation, tilt, zoom)}, ${comp.phrase}.`;
-    const charSentence = isRef
+    if (!cineRefLocked && !isRef && !character.trim()) return null;
+    const opening = `A ${genre.mood} ${shot.phrase}, ${anglePhrase(rotation, tilt)}, ${comp.phrase}.`;
+    const charSentence = cineRefLocked
+      ? REF_ANCHOR_CLAUSE
+      : isRef
       ? `Use the attached photo as the identity reference: preserve this person's face, features, skin tone, hair and overall likeness exactly — do not alter their identity in any way.${character.trim() ? ` (${character.trim()})` : ""} Change only the visual direction described below.`
       : `${character.trim()}.`;
     const actionSentence = action.trim() ? `They are ${action.trim()}.` : "";
-    const outfitSentence = outfit.trim() ? `Wearing ${outfit.trim()}.` : "";
+    const outfitSentence = cineOutfitRef ? OUTFIT_ANCHOR_CLAUSE : (outfit.trim() ? `Wearing ${outfit.trim()}.` : "");
     const prodIdentity = injectedProduct ? ` The product: ${injectedProduct.text}` : "";
     const productSentence = injectProduct
       ? `The subject is ${productInteraction.trim() ? productInteraction.trim() : "holding and presenting the product naturally"} — keep the product's shape, color, logo and details exactly as in the provided product reference.${prodIdentity}`
       : "";
     const locationSentence = location.trim() ? `The scene is set in ${location.trim()}.` : "";
     const placeSentence = charPlacement ? placementPhrase(charPx, charPy, charDist) : "";
-    const cameraSentence = `Shot on a ${lens.name} at ${focalLength}mm on a ${sensor} sensor, aperture f/${aperture} for ${lens.character}.`;
+    // Focal length speaks lens character only — figure size comes exclusively from shot type.
+    const perspective = focalLength >= 85 ? "compressed perspective, flattened depth planes" : focalLength <= 24 ? "wide-angle perspective with mild edge stretch" : "natural perspective";
+    const cameraSentence = `Shot on a ${lens.name} at ${focalLength}mm (${perspective}) on a ${sensor} sensor, aperture f/${aperture} for ${lens.character}.`;
     const lightingSentence = `Lit ${key.phrase} with a ${quality.phrase} quality at a ${kelvin}K color temperature.`;
     const expressionSentence = expressionPhrase.trim() ? `Their face shows ${expressionPhrase.trim()}.` : "";
     const eyeSentence = eyeEngine
       ? `The eyes are the anchor of realism: sharp, moist, and alive, with ${CATCHLIGHT_BY_KEY[keyId]}, faint reflections of the surroundings on the cornea, subtle asymmetry between the irises, and fine visible detail in the iris texture.`
       : "";
-    const realismParts = [];
-    if (skinTexture) realismParts.push("natural skin texture with visible pores and subtle asymmetry");
-    if (opticalImperfection) realismParts.push("fine grain, gentle chromatic aberration, and natural bokeh falloff");
-    const realismSentence = realismParts.length ? `Rendered with ${realismParts.join(" and ")}.` : "";
+    const realismSentence = realismForShot(shotId, { eyeSentence, skinTexture, opticalImperfection });
     const closing = antiAI ? "Real photographic frame captured on a real camera — no CGI, no plastic, no AI smoothness, no skin smoothing." : "";
     const aspectSentence = photoAspect && photoAspect.phrase ? `${photoAspect.phrase.charAt(0).toUpperCase()}${photoAspect.phrase.slice(1)}.` : "";
-    return [opening, charSentence, actionSentence, outfitSentence, productSentence, locationSentence, placeSentence, cameraSentence, lightingSentence, expressionSentence, eyeSentence, realismSentence, brandClause, aspectSentence, closing]
+    const refProportion = cineRefLocked ? "Figure proportions anatomically correct and consistent with the reference." : "";
+    return [opening, charSentence, actionSentence, outfitSentence, productSentence, locationSentence, placeSentence, cameraSentence, lightingSentence, expressionSentence, realismSentence, brandClause, aspectSentence, closing, refProportion]
       .filter(Boolean)
       .join(" ");
-  }, [identitySource, character, action, outfit, location, genreId, shotId, rotation, tilt, zoom, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, photoAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, charDist]);
+  }, [identitySource, character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, photoAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, charDist, cineRefLocked, cineOutfitRef]);
 
   // ---------- Product compiler ----------
   const productPrompt = useMemo(() => {
@@ -376,7 +379,7 @@ export default function CinemaPromptStudio() {
     const ctx = creativeContext && contextType ? contextType.phrase : "";
     return sbFrames.map((f) => {
       const shotObj = SHOT_TYPES.find((s) => s.id === f.shotType) || SHOT_TYPES[1];
-      const deltas = `A ${shotObj.phrase}, ${anglePhrase(f.angleRot, 0, 0)}.`;
+      const deltas = `A ${shotObj.phrase}, ${anglePhrase(f.angleRot, 0)}.`;
       return [
         ctx,
         sbSceneLocks.charLock,
@@ -412,7 +415,7 @@ export default function CinemaPromptStudio() {
     const lightObj = SB_LIGHTING.find((l) => l.id === sbLighting) || SB_LIGHTING[0];
     const panelLines = sbFrames.map((f, i) => {
       const shotObj = SHOT_TYPES.find((s) => s.id === f.shotType) || SHOT_TYPES[1];
-      return `Panel ${i + 1} (${pos(i)}): ${shotObj.phrase}, ${anglePhrase(f.angleRot, 0, 0)}${f.action.trim() ? ` — ${f.action.trim().replace(/\.+$/, "")}` : ""}.${f.expressionPhrase.trim() ? ` Expression: ${f.expressionPhrase.trim().replace(/\.+$/, "")}.` : ""}`;
+      return `Panel ${i + 1} (${pos(i)}): ${shotObj.phrase}, ${anglePhrase(f.angleRot, 0)}${f.action.trim() ? ` — ${f.action.trim().replace(/\.+$/, "")}` : ""}.${f.expressionPhrase.trim() ? ` Expression: ${f.expressionPhrase.trim().replace(/\.+$/, "")}.` : ""}`;
     }).join("\n");
     return [
       `A ${n}-panel storyboard previz sheet arranged as a ${cols}-column by 2-row grid in a single frame, separated by thin clean white gutters between panels. Every panel shows the same single character in the same location. ${sbSceneLocks.charLock} ${sbSceneLocks.locLock} ${sbSceneLocks.lighting}${sbDirection.trim() ? ` ${sbDirection.trim().replace(/\.+$/, "")}.` : ""}`,
@@ -534,7 +537,7 @@ export default function CinemaPromptStudio() {
 
   const snapshot = () => ({
     lensId, sensor, focalIdx, apertureIdx, genreId, keyId, qualityId, kelvin,
-    identitySource, character, action, outfit, location, shotId, rotation, tilt, zoom, compId,
+    identitySource, character, action, outfit, location, shotId, rotation, tilt, compId, cineRefLocked, cineOutfitRef,
     skinTexture, opticalImperfection, antiAI, eyeEngine, expressionPhrase,
     charPlacement, charPx, charPy, charDist,
     photoAspectId, injectProduct, productInteraction, injectedProductId, manualInstruction, creativeContext, contextTypeId, applyBrand,
@@ -554,7 +557,8 @@ export default function CinemaPromptStudio() {
       genreId: setGenreId, keyId: setKeyId, qualityId: setQualityId, kelvin: setKelvin,
       subject: setCharacter, setting: setLocation,
       identitySource: setIdentitySource, character: setCharacter, action: setAction, outfit: setOutfit, location: setLocation,
-      shotId: setShotId, rotation: setRotation, tilt: setTilt, zoom: setZoom, compId: setCompId,
+      shotId: setShotId, rotation: setRotation, tilt: setTilt, compId: setCompId,
+      cineRefLocked: setCineRefLocked, cineOutfitRef: setCineOutfitRef,
       photoAspectId: setPhotoAspectId,
       charPlacement: setCharPlacement, charPx: setCharPx, charPy: setCharPy, charDist: setCharDist,
       injectProduct: setInjectProduct, productInteraction: setProductInteraction, injectedProductId: setInjectedProductId,
@@ -951,7 +955,19 @@ export default function CinemaPromptStudio() {
                 <Eyebrow>04 — Character</Eyebrow>
                 <span className="text-xs px-1.5 py-0.5 rounded mb-3" style={{ fontFamily: fMono, color: COLORS.console, backgroundColor: COLORS.amber, fontSize: 10, fontWeight: 700 }}>LOCKED</span>
               </div>
-              <div className="flex gap-2 mb-3">
+              <Toggle
+                checked={cineRefLocked}
+                onChange={setCineRefLocked}
+                label="Character reference attached"
+                description="On: you will attach the character's saved reference image in your AI tool. Identity is anchored to the image, not re-described."
+              />
+              {cineRefLocked ? (
+                <p className="text-xs mt-1 mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>
+                  Identity is anchored to the attached reference image — the identity inputs below are ignored while this is on.
+                </p>
+              ) : (
+              <>
+              <div className="flex gap-2 mb-3 mt-2">
                 {[
                   { id: "describe", label: "Describe identity" },
                   { id: "reference", label: "Reference photo attached" },
@@ -994,6 +1010,8 @@ export default function CinemaPromptStudio() {
                     style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.amberDim}` }}
                   />
                 </>
+              )}
+              </>
               )}
 
               {/* Character library */}
@@ -1038,8 +1056,22 @@ export default function CinemaPromptStudio() {
 
             <Panel>
               <Eyebrow>06 — Outfit</Eyebrow>
-              <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Wardrobe — separate from identity, so you can restyle without changing the person</div>
+              <Toggle
+                checked={cineOutfitRef}
+                onChange={setCineOutfitRef}
+                label="Outfit as attached reference"
+                description="On: you will attach an outfit reference image (e.g. an outfit sheet from Character Maker). The outfit is anchored to the image, not described."
+              />
+              {cineOutfitRef ? (
+                <p className="text-xs mt-1" style={{ fontFamily: fBody, color: COLORS.steel }}>
+                  The outfit is anchored to the attached reference image — the description below is ignored while this is on.
+                </p>
+              ) : (
+              <>
+              <div className="text-xs mb-2 mt-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Wardrobe — separate from identity, so you can restyle without changing the person</div>
               <textarea value={outfit} onChange={(e) => setOutfit(e.target.value)} placeholder="e.g. an oversized cream trench coat over a black turtleneck" rows={2} className="w-full rounded p-3 text-sm resize-none" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }} />
+              </>
+              )}
             </Panel>
 
             {/* Product injection — now connected to Product Library */}
@@ -1144,16 +1176,9 @@ export default function CinemaPromptStudio() {
                   </div>
                   <input type="range" min={-90} max={90} step={1} value={tilt} onChange={(e) => setTiltSnapped(Number(e.target.value))} className="w-full" />
                 </div>
-                <div>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>Zoom</span>
-                    <span style={{ fontFamily: fMono, color: COLORS.amber, fontSize: 13 }}>{zoom > 0 ? "+" : ""}{zoom}</span>
-                  </div>
-                  <input type="range" min={-100} max={100} step={5} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="w-full" />
-                </div>
                 <div className="mt-3 rounded p-2.5" style={{ backgroundColor: COLORS.console, border: `1px solid ${COLORS.panelBorder}` }}>
                   <span className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>Reads as: </span>
-                  <span className="text-xs" style={{ fontFamily: fBody, color: COLORS.paper }}>{anglePhrase(rotation, tilt, zoom)}</span>
+                  <span className="text-xs" style={{ fontFamily: fBody, color: COLORS.paper }}>{anglePhrase(rotation, tilt)}</span>
                 </div>
               </div>
               {/* Character placement canvas */}

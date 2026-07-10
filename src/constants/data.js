@@ -337,6 +337,9 @@ export const REALISM_CLOSE =
 export const REF_ANCHOR_CLAUSE =
   "The exact same character as the attached reference image — identical face, bone structure, skin tone, hair color and texture, and body proportions. Do not alter the identity in any way.";
 
+export const OUTFIT_ANCHOR_CLAUSE =
+  "Wearing the exact same outfit as in the attached outfit reference image — identical garments, colors, materials, and fit, unchanged.";
+
 export const CM_BASELINE_WARDROBE = {
   female: "a plain black thin-strap camisole, no jewelry, no logos, no graphics",
   male: "a plain black ribbed tank, no jewelry, no logos, no graphics",

@@ -1,5 +1,5 @@
-// Translate orbit values (rotation/tilt/zoom) into a natural camera-angle phrase.
-export function anglePhrase(rotation, tilt, zoom) {
+// Translate orbit values (rotation/tilt) into a natural camera-angle phrase.
+export function anglePhrase(rotation, tilt) {
   const r = ((rotation % 360) + 360) % 360;
   const c = Math.cos((r * Math.PI) / 180);
   const s = Math.sin((r * Math.PI) / 180);
@@ -22,11 +22,35 @@ export function anglePhrase(rotation, tilt, zoom) {
   else if (tilt > -60) vert = `from a low angle looking up (about ${at}° below eye level)`;
   else vert = `looking steeply up from a low angle (about ${at}° below eye level)`;
 
-  let z = "";
-  if (zoom >= 30) z = ", the camera pushed in tight for an intimate framing";
-  else if (zoom <= -30) z = ", the camera pulled back for a wider view";
+  return `photographed ${horiz}, ${vert}`;
+}
 
-  return `photographed ${horiz}, ${vert}${z}`;
+// Resolution-aware realism stack: caps micro-detail by shot framing so faces
+// aren't over-resolved at distances where they couldn't be. Toggles that are
+// off stay off — buckets only cap the maximum detail level.
+export function realismForShot(shotId, { eyeSentence = "", skinTexture = false, opticalImperfection = false } = {}) {
+  const optical = opticalImperfection ? "fine grain, gentle chromatic aberration, and natural bokeh falloff" : "";
+  const bucket = shotId === "wide" ? "wide" : shotId === "fullbody" ? "medium" : "close";
+
+  if (bucket === "close") {
+    const parts = [];
+    if (skinTexture) parts.push("natural skin texture with visible pores and subtle asymmetry");
+    if (optical) parts.push(optical);
+    const rendered = parts.length ? `Rendered with ${parts.join(" and ")}.` : "";
+    return [eyeSentence, rendered].filter(Boolean).join(" ");
+  }
+
+  if (bucket === "medium") {
+    const parts = [];
+    if (skinTexture) parts.push("natural realistic skin with soft even texture, no waxy AI render");
+    if (optical) parts.push(optical);
+    return parts.length ? `Rendered with ${parts.join(" and ")}.` : "";
+  }
+
+  // wide: no face/skin/eye micro-detail at all
+  const distance = "At this framing the character reads at true distance scale — correct head-to-body proportion, facial features rendered softly at natural resolving distance, no oversharpened or enlarged face, figure anatomically correct. The character reads primarily as silhouette, hair color, posture, and wardrobe color blocks.";
+  const rendered = optical ? `Rendered with ${optical}.` : "";
+  return [distance, rendered].filter(Boolean).join(" ");
 }
 
 // Translate placement canvas (px, py) to spatial prose
