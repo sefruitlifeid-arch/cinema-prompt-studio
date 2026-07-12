@@ -418,7 +418,7 @@ export default function CinemaPromptStudio() {
       return `Panel ${i + 1} (${pos(i)}): ${shotObj.phrase}, ${anglePhrase(f.angleRot, 0)}${f.action.trim() ? ` — ${f.action.trim().replace(/\.+$/, "")}` : ""}.${f.expressionPhrase.trim() ? ` Expression: ${f.expressionPhrase.trim().replace(/\.+$/, "")}.` : ""}`;
     }).join("\n");
     return [
-      `A ${n}-panel storyboard previz sheet arranged as a ${cols}-column by 2-row grid in a single frame, panels separated by hairline gutters matching the surrounding image tones, no white lines, no visible borders. Every panel shows the same single character in the same location. ${sbSceneLocks.charLock} ${sbSceneLocks.locLock} ${sbSceneLocks.lighting}${sbDirection.trim() ? ` ${sbDirection.trim().replace(/\.+$/, "")}.` : ""}`,
+      `A ${n}-panel storyboard previz sheet arranged as a ${cols}-column by 2-row grid in a single frame, separated by thin clean white gutters between panels. Every panel shows the same single character in the same location. ${sbSceneLocks.charLock} ${sbSceneLocks.locLock} ${sbSceneLocks.lighting}${sbDirection.trim() ? ` ${sbDirection.trim().replace(/\.+$/, "")}.` : ""}`,
       panelLines,
       `The backdrop of every panel is the location environment itself under the same scene lighting — identical character identity and location continuity locked across all panels.`,
       `${REALISM_CLOSE} ${ANTI_TEXT_CLAUSE}`,
@@ -468,7 +468,7 @@ export default function CinemaPromptStudio() {
       const rowcol = ["top-left", "top-center", "top-right", "middle-left", "middle-center", "middle-right", "bottom-left", "bottom-center", "bottom-right"];
       const panelLines = CHARMAKER_EXPRESSIONS_9.map((e, i) => `Panel ${i + 1} (${rowcol[i]}): ${e.phrase}.`).join("\n");
       return [
-        `A 9-panel character expression reference sheet arranged as a 3-column by 3-row grid in a single frame, panels separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character from the same chest-up angle — ${identityBlock} ${pronoun} wears ${baseline}.`,
+        `A 9-panel character expression reference sheet arranged as a 3-column by 3-row grid in a single frame, separated by thin clean white gutters between panels. Each panel shows the same single character from the same chest-up angle — ${identityBlock} ${pronoun} wears ${baseline}.`,
         panelLines,
         `${lockedBackdropUniform("nine")} The face and identity must be absolutely consistent across all nine panels — same bone structure, same skin, same hair, same proportions in every cell. Only the expression changes.`,
         close,
@@ -487,7 +487,7 @@ export default function CinemaPromptStudio() {
         `Panel 6 (bottom-right): Detail shot — ${detailObj.clause}.`,
       ].join("\n");
       return [
-        `A 6-panel character reference sheet arranged as a 3-column by 2-row grid in a single horizontal frame, panels separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
+        `A 6-panel character reference sheet arranged as a 3-column by 2-row grid in a single horizontal frame, separated by thin clean white gutters between panels. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
         panels,
         `${lockedBackdropUniform("six")} Sharp focus across every panel. Identical character identity locked across all six panels — same face, same skin, same hair, same wardrobe, same accessories, same proportions in every cell.`,
         close,
@@ -510,7 +510,7 @@ export default function CinemaPromptStudio() {
       if (!cmOutfit.trim()) return null;
       const panels = CHARMAKER_OUTFIT_PANELS.map((p, i) => `Panel ${i + 1}: ${p}.`).join("\n");
       return [
-        `A 3-panel outfit reference sheet arranged as a single horizontal frame, panels separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Every panel shows the same single character — ${identityBlock} — wearing ${outfitLine}.`,
+        `A 3-panel outfit reference sheet arranged as a single horizontal frame, separated by thin clean white gutters between panels. Every panel shows the same single character — ${identityBlock} — wearing ${outfitLine}.`,
         panels,
         "The clothing, fabric, colors and details must be pixel-consistent across all panels. The face appears ONLY in the third anchor panel so downstream video tools take identity from that single face.",
         `${lockedBackdropUniform("three")}`,
