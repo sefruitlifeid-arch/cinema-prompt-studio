@@ -85,6 +85,11 @@ export const PRODUCT_EXAMINE_PROMPT = `You are a product identity extractor for 
 
 export const LOCATION_EXAMINE_PROMPT = `You are a location identity extractor for image prompts. Examine the attached reference photo of a place and write ONE dense paragraph describing ONLY its fixed physical environment — the traits that stay identical across every future image regardless of time of day or weather. Include: architectural style and era, key structural elements, dominant materials (stone, concrete, wood, glass), built-in props and furniture, natural features, color palette of surfaces, and distinctive spatial character. Do NOT mention people, lighting conditions, weather, time of day, or camera. Under 90 words, flowing prose.`;
 
+export const LOCATION_BLOCKING_PROMPT =
+  "Look at this location image and map it as a top-down floor plan. Identify 4 to 8 distinct sub-areas (doorway, window seat, counter, sofa, stairs, etc.). Reply with ONLY a numbered list, one line per sub-area, in EXACTLY this format with pipe separators and nothing else:\n" +
+  "N | short sub-area name | x,y | one short visual sentence\n" +
+  "where x and y are integers 0-100 on a top-down map: x is left(0) to right(100) as seen from the camera position of this image, y is rear/far(0) to front/near(100). Round positions are fine - relative placement matters more than precision. No headers, no commentary, no blank lines, no markdown.";
+
 export const LOCATION_OUTPUTS = [
   { id: "establishing", label: "Establishing shot", desc: "One hero photograph of the location" },
   { id: "sheet", label: "Location sheet (1 image)", desc: "A 2×2 grid: wide establishing, reverse angle, detail corner, high-angle overview" },
