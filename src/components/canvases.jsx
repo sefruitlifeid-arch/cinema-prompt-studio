@@ -49,6 +49,81 @@ export function PlacementCanvas({ px, py, dist, setPx, setPy, setDist, ratio }) 
   );
 }
 
+// Top-down blocking canvas: sub-area dots, up to two character points, and a
+// camera wedge that always faces the current subject. Coordinates 0-100:
+// x 0=left/100=right, y 0=rear (top edge) / 100=front (bottom edge).
+export function BlockingCanvas({ subAreas, characters, camera, subjectIdx, onMoveSubArea, onMoveCharacter, onMoveCamera }) {
+  const ref = React.useRef(null);
+  const drag = React.useRef(null); // { type: "sub"|"char"|"cam", idx }
+  const W = 280, H = 230;
+  const toPx = (p) => ({ left: (p.x / 100) * W, top: (p.y / 100) * H });
+  const onUp = () => { drag.current = null; };
+  const onMove = (e) => {
+    if (!drag.current || !ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    const x = Math.max(0, Math.min(100, ((p.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((p.clientY - rect.top) / rect.height) * 100));
+    const d = drag.current;
+    if (d.type === "sub") onMoveSubArea(d.idx, { x, y });
+    else if (d.type === "char") onMoveCharacter(d.idx, { x, y });
+    else onMoveCamera({ x, y });
+  };
+  const grab = (type, idx) => (e) => { e.stopPropagation(); drag.current = { type, idx }; };
+  const subject = characters[Math.min(subjectIdx, characters.length - 1)] || characters[0];
+  const camAngle = subject ? (Math.atan2(subject.y - camera.y, subject.x - camera.x) * 180) / Math.PI : -90;
+  return (
+    <div>
+      <div ref={ref}
+        onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
+        onTouchMove={onMove} onTouchEnd={onUp}
+        style={{ width: W, height: H, position: "relative", margin: "0 auto", touchAction: "none",
+          backgroundColor: COLORS.console, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 6, overflow: "hidden", userSelect: "none" }}>
+        {[0.25, 0.5, 0.75].map((f) => (
+          <React.Fragment key={f}>
+            <div style={{ position: "absolute", left: f * W, top: 0, width: 1, height: H, backgroundColor: COLORS.panelBorder, opacity: 0.35 }} />
+            <div style={{ position: "absolute", top: f * H, left: 0, height: 1, width: W, backgroundColor: COLORS.panelBorder, opacity: 0.35 }} />
+          </React.Fragment>
+        ))}
+        <span style={{ position: "absolute", top: 3, left: "50%", transform: "translateX(-50%)", fontFamily: fMono, fontSize: 9, color: COLORS.steel, opacity: 0.6 }}>REAR</span>
+        <span style={{ position: "absolute", bottom: 3, left: "50%", transform: "translateX(-50%)", fontFamily: fMono, fontSize: 9, color: COLORS.steel, opacity: 0.6, whiteSpace: "nowrap" }}>FRONT / default camera side</span>
+        {subAreas.map((sa, i) => {
+          const p = toPx(sa);
+          return (
+            <div key={sa.id || i} onMouseDown={grab("sub", i)} onTouchStart={grab("sub", i)}
+              style={{ position: "absolute", left: p.left, top: p.top, transform: "translate(-50%, -50%)", cursor: "grab", textAlign: "center", zIndex: 1 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: COLORS.steel, opacity: 0.85, margin: "0 auto" }} />
+              <div style={{ fontFamily: fMono, fontSize: 8, color: COLORS.steel, marginTop: 1, whiteSpace: "nowrap", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis" }}>{sa.name}</div>
+            </div>
+          );
+        })}
+        {characters.map((c, i) => {
+          const p = toPx(c);
+          return (
+            <div key={i} onMouseDown={grab("char", i)} onTouchStart={grab("char", i)}
+              style={{ position: "absolute", left: p.left, top: p.top, transform: "translate(-50%, -50%)", cursor: "grab", textAlign: "center", zIndex: 3 }}>
+              <div style={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: COLORS.amber, border: `2px solid ${COLORS.paper}`, margin: "0 auto", boxShadow: i === subjectIdx ? `0 0 0 2px ${COLORS.amberDim}` : "none" }} />
+              <div style={{ fontFamily: fMono, fontSize: 8, color: COLORS.amber, marginTop: 1, whiteSpace: "nowrap" }}>{c.label}</div>
+            </div>
+          );
+        })}
+        {(() => {
+          const p = toPx(camera);
+          return (
+            <div onMouseDown={grab("cam")} onTouchStart={grab("cam")}
+              style={{ position: "absolute", left: p.left, top: p.top, transform: "translate(-50%, -50%)", cursor: "grab", zIndex: 4 }}>
+              <svg width="26" height="26" viewBox="-13 -13 26 26" style={{ display: "block", transform: `rotate(${camAngle}deg)` }}>
+                <polygon points="11,0 -8,-8 -8,8" fill={COLORS.paper} stroke={COLORS.console} strokeWidth="1.5" />
+              </svg>
+              <div style={{ fontFamily: fMono, fontSize: 8, color: COLORS.paper, textAlign: "center", marginTop: -2 }}>CAM</div>
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
 // Visual canvas to place headline + optional sub-label by dragging.
 export function TextPlacement({ aspectId, blocks, activeIdx, setActiveIdx, updateBlock }) {
   const ref = React.useRef(null);

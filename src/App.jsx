@@ -4,7 +4,7 @@ import { COLORS, fDisplay, fBody, fMono } from "./constants/theme";
 import {
   LENSES, SENSORS, GENRES, SHOT_TYPES, ACTION_CHIPS, LOCATION_PRESETS,
   ANGLE_DIRECTIONS, TILT_PRESETS, CONTEXT_TYPES,
-  EXAMINE_PROMPT, REF_EXAMINE_PROMPT, PALETTE_EXAMINE_PROMPT, PRODUCT_EXAMINE_PROMPT, LOCATION_EXAMINE_PROMPT,
+  EXAMINE_PROMPT, REF_EXAMINE_PROMPT, PALETTE_EXAMINE_PROMPT, PRODUCT_EXAMINE_PROMPT, LOCATION_EXAMINE_PROMPT, LOCATION_BLOCKING_PROMPT,
   LOCATION_OUTPUTS, LOCATION_SHEET_VIEWS, TIME_OF_DAY, WEATHER_CONDITIONS,
   COMPOSITIONS, PHOTO_ASPECTS, KEY_DIRECTIONS, LIGHT_QUALITIES, CATCHLIGHT_BY_KEY,
   EXPRESSION_GROUPS, FOCAL_MARKS, APERTURE_STOPS,
@@ -17,9 +17,10 @@ import {
   STYLE_VIBES,
 } from "./constants/data";
 import { anglePhrase, placementPhrase, textPositionPhrase, polar, bladePoints, realismForShot } from "./utils/phrases";
+import { parseSubAreas, compileBlockingClause } from "./utils/blocking";
 import { PRESET_KEY, CHAR_KEY, PRODUCT_KEY, BRAND_KEY, LOCATION_KEY, memStore, store, copyText } from "./utils/storage";
 import { Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper } from "./components/primitives";
-import { PlacementCanvas, TextPlacement, AngleOrbit } from "./components/canvases";
+import { PlacementCanvas, TextPlacement, AngleOrbit, BlockingCanvas } from "./components/canvases";
 
 // Locked backdrop variant for multi-panel sheets ("six" / "three" / "nine" panels)
 const lockedBackdropUniform = (n) =>
@@ -168,6 +169,20 @@ export default function CinemaPromptStudio() {
   const [cmSource, setCmSource] = useState("scratch");
   const [cmExOpen, setCmExOpen] = useState(false);
   const [cmExCopied, setCmExCopied] = useState(false);
+  // Blocking mode state (blockings persist in the location library, not presets)
+  const [blLocationId, setBlLocationId] = useState("");
+  const [blPasteText, setBlPasteText] = useState("");
+  const [blParseErrors, setBlParseErrors] = useState([]);
+  const [blPromptCopied, setBlPromptCopied] = useState(false);
+  const [blClauseCopied, setBlClauseCopied] = useState(false);
+  const [blReextract, setBlReextract] = useState(false);
+  const [blCharacters, setBlCharacters] = useState([{ x: 40, y: 55, label: "Character A" }]);
+  const [blCamera, setBlCamera] = useState({ x: 50, y: 90 });
+  const [blSubjectIdx, setBlSubjectIdx] = useState(0);
+  const [blName, setBlName] = useState("");
+  const [blLoadedId, setBlLoadedId] = useState("");
+  // Blocking injection (cinema)
+  const [cineBlockingId, setCineBlockingId] = useState("");
 
   useEffect(() => {
     setPresets(store.read(PRESET_KEY));
@@ -214,6 +229,15 @@ export default function CinemaPromptStudio() {
   const tod = TIME_OF_DAY.find((t) => t.id === timeOfDay);
   const weather = WEATHER_CONDITIONS.find((w) => w.id === weatherId);
   const contextType = CONTEXT_TYPES.find((c) => c.id === contextTypeId);
+
+  // Blocking mode derived values (old library entries default subAreas/blockings to [])
+  const blLocation = locations.find((l) => l.id === blLocationId);
+  const blSubAreas = (blLocation && blLocation.subAreas) || [];
+  const blBlockings = (blLocation && blLocation.blockings) || [];
+  const blClause = useMemo(
+    () => compileBlockingClause({ characters: blCharacters, camera: blCamera, subjectIdx: blSubjectIdx }, blSubAreas),
+    [blCharacters, blCamera, blSubjectIdx, blSubAreas]
+  );
 
   // ---------- Cinema compiler ----------
   const cinemaPrompt = useMemo(() => {
@@ -522,11 +546,12 @@ export default function CinemaPromptStudio() {
   }, [cmOutput, cmIdentityText, cmRefLocked, cmBaseGender, cmDetail, cmVibe, cmOutfit]);
 
   const contextClause = creativeContext && contextType ? contextType.phrase : "";
-  const basePrompt = mode === "cinema" ? cinemaPrompt : mode === "product" ? productPrompt : mode === "location" ? locationPrompt : mode === "assemble" ? assemblePrompt : mode === "charmaker" ? characterPrompt : designPrompt;
+  const basePrompt = mode === "cinema" ? cinemaPrompt : mode === "product" ? productPrompt : mode === "location" ? locationPrompt : mode === "assemble" ? assemblePrompt : mode === "charmaker" ? characterPrompt : mode === "blocking" ? (blClause || null) : designPrompt;
   // contextClause goes FIRST — classifiers weight the opening more heavily.
   // Storyboard frames are already full standalone prompts (context + manual baked in).
+  // Blocking output is a raw spatial clause meant for injection, not a full prompt.
   const promptText = basePrompt
-    ? (mode === "assemble" ? basePrompt : [contextClause, basePrompt, manualInstruction.trim()].filter(Boolean).join(" "))
+    ? (mode === "assemble" || mode === "blocking" ? basePrompt : [contextClause, basePrompt, manualInstruction.trim()].filter(Boolean).join(" "))
     : null;
   const isMultiPrompt = (mode === "product" && productOutput === "angles" && !!promptText) || (mode === "assemble" && sbFrames.length > 1 && !!promptText);
 
@@ -549,6 +574,7 @@ export default function CinemaPromptStudio() {
     cmOutput, cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild,
     cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmSource,
     cmBaseGender, cmRefLocked, cmDetail,
+    blLocationId, cineBlockingId,
   });
 
   const restore = (d) => {
@@ -583,6 +609,7 @@ export default function CinemaPromptStudio() {
       cmMarks: setCmMarks, cmIdentityText: setCmIdentityText, cmIdentityDirty: setCmIdentityDirty,
       cmOutfit: setCmOutfit, cmVibe: setCmVibe, cmSource: setCmSource,
       cmBaseGender: setCmBaseGender, cmRefLocked: setCmRefLocked, cmDetail: setCmDetail,
+      blLocationId: setBlLocationId, cineBlockingId: setCineBlockingId,
     };
     Object.entries(d).forEach(([k, v]) => { if (setters[k]) setters[k](v); });
   };
@@ -650,6 +677,56 @@ export default function CinemaPromptStudio() {
     const next = locations.filter((l) => l.id !== id);
     setLocations(next); store.write(LOCATION_KEY, next);
     if (sbLocationId === id) setSbLocationId("");
+    if (blLocationId === id) setBlLocationId("");
+  };
+
+  // ── Blocking mode ───────────────────────────────────────────────────────────
+  // Patch a location entry in place, preserving any fields we don't know about.
+  const patchLocationEntry = (id, patch) => {
+    const next = locations.map((l) => (l.id === id ? { ...l, ...patch } : l));
+    setLocations(next);
+    store.write(LOCATION_KEY, next);
+  };
+  const blParse = () => {
+    const { subAreas, errors } = parseSubAreas(blPasteText);
+    setBlParseErrors(errors);
+    if (subAreas.length >= 2) {
+      patchLocationEntry(blLocationId, { subAreas });
+      setBlReextract(false);
+      setBlPasteText("");
+    }
+  };
+  const blMoveSubArea = (i, pt) => {
+    patchLocationEntry(blLocationId, { subAreas: blSubAreas.map((sa, idx) => (idx === i ? { ...sa, ...pt } : sa)) });
+  };
+  const blMoveCharacter = (i, pt) => setBlCharacters((cs) => cs.map((c, idx) => (idx === i ? { ...c, ...pt } : c)));
+  const blPatchCharacter = (i, patch) => setBlCharacters((cs) => cs.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
+  const blAddCharacter = () => setBlCharacters((cs) => (cs.length >= 2 ? cs : [...cs, { x: 60, y: 55, label: "Character B" }]));
+  const blRemoveCharacter = (i) => {
+    setBlCharacters((cs) => (cs.length <= 1 ? cs : cs.filter((_, idx) => idx !== i)));
+    setBlSubjectIdx(0);
+  };
+  const blSaveBlocking = () => {
+    const name = blName.trim();
+    if (!name || !blLocation) return;
+    const entry = { id: blLoadedId || Date.now().toString(), name, characters: blCharacters, camera: blCamera, subjectIdx: blSubjectIdx };
+    const next = blBlockings.some((b) => b.id === entry.id)
+      ? blBlockings.map((b) => (b.id === entry.id ? entry : b))
+      : [...blBlockings, entry];
+    patchLocationEntry(blLocationId, { blockings: next });
+    setBlLoadedId(entry.id);
+  };
+  const blLoadBlocking = (b) => {
+    setBlCharacters(Array.isArray(b.characters) && b.characters.length ? b.characters.map((c) => ({ ...c })) : [{ x: 40, y: 55, label: "Character A" }]);
+    setBlCamera(b.camera ? { ...b.camera } : { x: 50, y: 90 });
+    setBlSubjectIdx(b.subjectIdx || 0);
+    setBlName(b.name);
+    setBlLoadedId(b.id);
+  };
+  const blDeleteBlocking = (id) => {
+    patchLocationEntry(blLocationId, { blockings: blBlockings.filter((b) => b.id !== id) });
+    if (blLoadedId === id) setBlLoadedId("");
+    if (cineBlockingId === id) setCineBlockingId("");
   };
 
   const saveCharacterFromCM = () => {
@@ -814,6 +891,7 @@ export default function CinemaPromptStudio() {
             { id: "location", label: "Location / Set" },
             { id: "design", label: "Design / Thumbnail" },
             { id: "assemble", label: "Storyboard" },
+            { id: "blocking", label: "Blocking" },
             { id: "charmaker", label: "Character Maker" },
           ].map((m) => (
             <button
@@ -1612,6 +1690,104 @@ export default function CinemaPromptStudio() {
             </button>
             </>)}
 
+            {/* ─── BLOCKING ────────────────────────────────────────────── */}
+            {mode === "blocking" && (<>
+            <Panel>
+              <Eyebrow>01 — Location</Eyebrow>
+              {locations.length === 0 ? (
+                <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>No saved locations yet — create one in Location / Set mode first, then come back here to block the scene.</p>
+              ) : (
+                <>
+                  <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Pick a location from the library to block</div>
+                  <div className="flex flex-wrap">
+                    {locations.map((l) => (
+                      <Chip key={l.id} active={blLocationId === l.id} onClick={() => { setBlLocationId(blLocationId === l.id ? "" : l.id); setBlParseErrors([]); setBlReextract(false); setBlLoadedId(""); }} title={l.text}>
+                        📍 {l.name}{(l.blockings || []).length ? ` (${l.blockings.length})` : ""}
+                      </Chip>
+                    ))}
+                  </div>
+                </>
+              )}
+            </Panel>
+
+            {blLocation && (blSubAreas.length < 2 || blReextract) && (
+            <Panel>
+              <Eyebrow>02 — Extract Sub-Areas</Eyebrow>
+              <div className="rounded p-3 mb-3" style={{ backgroundColor: COLORS.console, border: `1px solid ${COLORS.panelBorder}` }}>
+                <p className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Copy this prompt, paste it into your AI tool together with the location photo, then paste the reply below.</p>
+                <p className="text-xs mb-2 p-2 rounded" style={{ fontFamily: fMono, color: COLORS.paper, backgroundColor: COLORS.panel, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{LOCATION_BLOCKING_PROMPT}</p>
+                <button onClick={mkCopy(LOCATION_BLOCKING_PROMPT, setBlPromptCopied)} className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs" style={{ fontFamily: fBody, backgroundColor: COLORS.amber, color: COLORS.console, fontWeight: 600 }}>
+                  {blPromptCopied ? <Check size={12} /> : <Copy size={12} />}{blPromptCopied ? "Copied" : "Copy extract prompt"}
+                </button>
+              </div>
+              <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel }}>Paste the AI's reply here</div>
+              <textarea value={blPasteText} onChange={(e) => setBlPasteText(e.target.value)} placeholder={"1 | doorway | 10,80 | a wooden door with a brass handle\n2 | counter | 50,40 | a marble kitchen counter\n…"} rows={6} className="w-full rounded p-3 text-sm resize-none mb-2" style={{ fontFamily: fMono, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}`, fontSize: 12 }} />
+              {blParseErrors.length > 0 && (
+                <div className="rounded p-2 mb-2" style={{ backgroundColor: COLORS.console, border: `1px solid ${COLORS.amberDim}` }}>
+                  {blParseErrors.map((e, i) => (<p key={i} className="text-xs" style={{ fontFamily: fMono, color: COLORS.amber, fontSize: 11 }}>{e}</p>))}
+                </div>
+              )}
+              <button onClick={blParse} disabled={!blPasteText.trim()} className="px-3 py-1.5 rounded text-xs" style={{ fontFamily: fBody, backgroundColor: blPasteText.trim() ? COLORS.amber : "transparent", color: blPasteText.trim() ? COLORS.console : COLORS.steel, border: `1px solid ${blPasteText.trim() ? COLORS.amber : COLORS.panelBorder}`, fontWeight: 600, opacity: blPasteText.trim() ? 1 : 0.5 }}>Parse</button>
+            </Panel>
+            )}
+
+            {blLocation && blSubAreas.length >= 2 && !blReextract && (<>
+            <Panel>
+              <div className="flex items-center justify-between mb-3">
+                <Eyebrow>03 — Blocking Canvas</Eyebrow>
+                <button onClick={() => setBlReextract(true)} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}` }}>Re-extract</button>
+              </div>
+              <p className="text-xs mb-3" style={{ fontFamily: fBody, color: COLORS.steel }}>Top-down map of {blLocation.name}. Drag sub-area dots to correct their positions, drag the amber character points and the camera. The camera always faces the selected subject.</p>
+              <BlockingCanvas subAreas={blSubAreas} characters={blCharacters} camera={blCamera} subjectIdx={blSubjectIdx} onMoveSubArea={blMoveSubArea} onMoveCharacter={blMoveCharacter} onMoveCamera={setBlCamera} />
+              <div className="mt-3">
+                {blCharacters.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2 mb-2">
+                    <input value={c.label} onChange={(e) => blPatchCharacter(i, { label: e.target.value })} className="rounded px-2 py-1 text-xs" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}`, width: 140 }} />
+                    <button onClick={() => blRemoveCharacter(i)} disabled={blCharacters.length <= 1} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}`, opacity: blCharacters.length <= 1 ? 0.35 : 1 }}>Remove</button>
+                  </div>
+                ))}
+                <button onClick={blAddCharacter} disabled={blCharacters.length >= 2} className="px-3 py-1.5 rounded text-xs" style={{ fontFamily: fBody, color: blCharacters.length >= 2 ? COLORS.steel : COLORS.amber, border: `1px dashed ${blCharacters.length >= 2 ? COLORS.panelBorder : COLORS.amberDim}`, opacity: blCharacters.length >= 2 ? 0.5 : 1 }}>+ Add character</button>
+              </div>
+              <div className="mt-3">
+                <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel }}>Camera subject — who the camera faces</div>
+                <div className="flex flex-wrap">
+                  {blCharacters.map((c, i) => (<Chip key={i} active={blSubjectIdx === i} onClick={() => setBlSubjectIdx(i)}>{c.label}</Chip>))}
+                </div>
+              </div>
+            </Panel>
+
+            <Panel>
+              <Eyebrow>04 — Save & Output</Eyebrow>
+              <div className="flex items-center gap-2 mb-3">
+                <input value={blName} onChange={(e) => setBlName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") blSaveBlocking(); }} placeholder="Blocking name, e.g. Opening scene" className="rounded px-2 py-1.5 text-sm flex-1" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }} />
+                <button onClick={blSaveBlocking} disabled={!blName.trim()} className="px-3 py-1.5 rounded text-xs flex-shrink-0" style={{ fontFamily: fBody, backgroundColor: blName.trim() ? COLORS.amber : "transparent", color: blName.trim() ? COLORS.console : COLORS.steel, border: `1px solid ${blName.trim() ? COLORS.amber : COLORS.panelBorder}`, fontWeight: 600, opacity: blName.trim() ? 1 : 0.5 }}>
+                  {blLoadedId && blBlockings.some((b) => b.id === blLoadedId) ? "Update blocking" : "Save blocking"}
+                </button>
+              </div>
+              {blBlockings.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {blBlockings.map((b) => (
+                    <div key={b.id} className="flex items-center rounded" style={{ border: `1px solid ${blLoadedId === b.id ? COLORS.amberDim : COLORS.panelBorder}` }}>
+                      <button onClick={() => blLoadBlocking(b)} className="px-3 py-1.5 text-sm" style={{ fontFamily: fBody, color: blLoadedId === b.id ? COLORS.amber : COLORS.paper }}>{b.name}</button>
+                      <button onClick={() => blDeleteBlocking(b.id)} className="px-2 py-1.5" title="Delete" style={{ color: COLORS.steel }}><X size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel }}>Load a blocking to rename it — edit the name and hit Update. Saved blockings appear as chips in Cinema and Storyboard.</p>
+              <div className="rounded p-3 mt-2" style={{ backgroundColor: COLORS.console, border: `1px solid ${COLORS.panelBorder}` }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs tracking-widest uppercase" style={{ fontFamily: fDisplay, color: COLORS.steel, letterSpacing: "0.1em" }}>Blocking clause</span>
+                  <button onClick={mkCopy(blClause, setBlClauseCopied)} className="flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, backgroundColor: blClauseCopied ? COLORS.amber : "transparent", color: blClauseCopied ? COLORS.console : COLORS.amber, border: `1px solid ${COLORS.amber}` }}>
+                    {blClauseCopied ? <Check size={11} /> : <Copy size={11} />} Copy
+                  </button>
+                </div>
+                <p className="text-xs leading-relaxed" style={{ fontFamily: fBody, color: COLORS.paper, opacity: 0.85 }}>{blClause}</p>
+              </div>
+            </Panel>
+            </>)}
+            </>)}
+
             {/* ─── CHARACTER MAKER ─────────────────────────────────────── */}
             {mode === "charmaker" && (<>
             <Panel>
@@ -1895,7 +2071,7 @@ export default function CinemaPromptStudio() {
                     </p>
                   ) : (
                     <p className="text-sm italic leading-relaxed" style={{ fontFamily: fBody, color: COLORS.ink, opacity: 0.55 }}>
-                      {mode === "cinema" ? "Describe your character above (or switch to Reference photo) to compile your prompt." : mode === "product" ? "Describe your product above to compile your prompt." : mode === "charmaker" ? ((cmOutput === "fullbody" || cmOutput === "outfitsheet") && cmIdentityText.trim() && !characterPrompt ? "Describe the outfit to compile this output." : "Build your character identity above to compile your prompt.") : mode === "assemble" ? "Pick a character and a location from the libraries above to compile your frames." : "Describe your design brief above to compile your prompt."}
+                      {mode === "cinema" ? "Describe your character above (or switch to Reference photo) to compile your prompt." : mode === "product" ? "Describe your product above to compile your prompt." : mode === "charmaker" ? ((cmOutput === "fullbody" || cmOutput === "outfitsheet") && cmIdentityText.trim() && !characterPrompt ? "Describe the outfit to compile this output." : "Build your character identity above to compile your prompt.") : mode === "assemble" ? "Pick a character and a location from the libraries above to compile your frames." : mode === "blocking" ? "Pick a location and parse its sub-areas to compile a blocking clause." : "Describe your design brief above to compile your prompt."}
                     </p>
                   )}
 
@@ -1907,6 +2083,7 @@ export default function CinemaPromptStudio() {
                         ? `${PRODUCT_OUTPUTS.find((o) => o.id === productOutput).label} · ${material.label} · ${prodLight.label}${applyBrand && brandHasContent ? " · BRAND" : ""}`
                         : mode === "location" ? `${LOCATION_OUTPUTS.find((o) => o.id === locationOutput).label} · ${tod ? tod.label : ""} · ${weather ? weather.label : ""}${applyBrand && brandHasContent ? " · BRAND" : ""}`
                         : mode === "assemble" ? `Storyboard · ${sbFrames.length} frame${sbFrames.length > 1 ? "s" : ""} · ${PHOTO_ASPECTS.find((a) => a.id === sbAspect)?.label ?? ""}`
+                        : mode === "blocking" ? `Blocking · ${blLocation ? blLocation.name : "no location"} · ${blCharacters.length} character${blCharacters.length > 1 ? "s" : ""}`
                         : mode === "charmaker" ? `${CHARMAKER_OUTPUTS.find((o) => o.id === cmOutput)?.label ?? "Character Maker"} · ${cmSource}`
                         : `${aspect.label} · ${thumbType.label}${applyBrand && brandHasContent ? " · BRAND" : ""}`}
                     </p>
