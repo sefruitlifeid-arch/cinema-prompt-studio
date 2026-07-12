@@ -239,6 +239,15 @@ export default function CinemaPromptStudio() {
     [blCharacters, blCamera, blSubjectIdx, blSubAreas]
   );
 
+  // Cinema blocking injection: recompile the clause live from stored geometry.
+  const cineLocEntry = locations.find((l) => l.text === location.trim());
+  const cineBlockingClause = useMemo(() => {
+    if (!cineBlockingId || !cineLocEntry) return "";
+    const b = (cineLocEntry.blockings || []).find((x) => x.id === cineBlockingId);
+    if (!b) return "";
+    return compileBlockingClause(b, cineLocEntry.subAreas || []);
+  }, [cineBlockingId, cineLocEntry]);
+
   // ---------- Cinema compiler ----------
   const cinemaPrompt = useMemo(() => {
     const isRef = identitySource === "reference";
@@ -256,6 +265,7 @@ export default function CinemaPromptStudio() {
       ? `The subject is ${productInteraction.trim() ? productInteraction.trim() : "holding and presenting the product naturally"} — keep the product's shape, color, logo and details exactly as in the provided product reference.${prodIdentity}`
       : "";
     const locationSentence = location.trim() ? `The scene is set in ${location.trim()}.` : "";
+    const blockingSentence = locationSentence ? cineBlockingClause : "";
     const placeSentence = charPlacement ? placementPhrase(charPx, charPy, charDist) : "";
     // Focal length speaks lens character only — figure size comes exclusively from shot type.
     const perspective = focalLength >= 85 ? "compressed perspective, flattened depth planes" : focalLength <= 24 ? "wide-angle perspective with mild edge stretch" : "natural perspective";
@@ -269,10 +279,10 @@ export default function CinemaPromptStudio() {
     const closing = antiAI ? "Real photographic frame captured on a real camera — no CGI, no plastic, no AI smoothness, no skin smoothing." : "";
     const aspectSentence = photoAspect && photoAspect.phrase ? `${photoAspect.phrase.charAt(0).toUpperCase()}${photoAspect.phrase.slice(1)}.` : "";
     const refProportion = cineRefLocked ? "Figure proportions anatomically correct and consistent with the reference." : "";
-    return [opening, charSentence, actionSentence, outfitSentence, productSentence, locationSentence, placeSentence, cameraSentence, lightingSentence, expressionSentence, realismSentence, brandClause, aspectSentence, closing, refProportion]
+    return [opening, charSentence, actionSentence, outfitSentence, productSentence, locationSentence, blockingSentence, placeSentence, cameraSentence, lightingSentence, expressionSentence, realismSentence, brandClause, aspectSentence, closing, refProportion]
       .filter(Boolean)
       .join(" ");
-  }, [identitySource, character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, photoAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, charDist, cineRefLocked, cineOutfitRef]);
+  }, [identitySource, character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, photoAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, charDist, cineRefLocked, cineOutfitRef, cineBlockingClause]);
 
   // ---------- Product compiler ----------
   const productPrompt = useMemo(() => {
@@ -393,6 +403,10 @@ export default function CinemaPromptStudio() {
       charText: ch.text, locText: lo.text,
     };
   }, [characters, products, locations, sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbRefLocked]);
+
+  // Storyboard blocking injection: writes into each frame's existing blockingClause slot.
+  const sbLocEntry = locations.find((l) => l.id === sbLocationId);
+  const sbLocBlockings = (sbLocEntry && sbLocEntry.blockings) || [];
 
   const sbAspectObj = PHOTO_ASPECTS.find((a) => a.id === sbAspect);
   const sbAspectClause = sbAspectObj && sbAspectObj.phrase ? `${sbAspectObj.phrase.charAt(0).toUpperCase()}${sbAspectObj.phrase.slice(1)}.` : "";
@@ -1204,6 +1218,17 @@ export default function CinemaPromptStudio() {
               <div className="flex flex-wrap">
                 {LOCATION_PRESETS.map((l) => (<Chip key={l.id} active={location === l.phrase} onClick={() => setLocation(l.phrase)}>{l.label}</Chip>))}
               </div>
+              {cineLocEntry && (cineLocEntry.blockings || []).length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Blocking — spatial staging saved for this location</div>
+                  <div className="flex flex-wrap">
+                    <Chip active={!cineBlockingId} onClick={() => setCineBlockingId("")}>None</Chip>
+                    {(cineLocEntry.blockings || []).map((b) => (
+                      <Chip key={b.id} active={cineBlockingId === b.id} onClick={() => setCineBlockingId(b.id)}>{b.name}</Chip>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Panel>
 
             <Panel>
@@ -1669,6 +1694,17 @@ export default function CinemaPromptStudio() {
                   <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Character placement</div>
                   <PlacementCanvas px={f.px} py={f.py} dist={f.dist} setPx={(v) => sbPatchFrame(i, { px: v })} setPy={(v) => sbPatchFrame(i, { py: v })} setDist={(v) => sbPatchFrame(i, { dist: v })} ratio={{ "169": 16 / 9, "916": 9 / 16, "11": 1, "45": 4 / 5 }[sbAspect] || 16 / 9}/>
                 </div>
+                {sbLocBlockings.length > 0 && (
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Blocking — spatial staging saved for this location</div>
+                    <div className="flex flex-wrap">
+                      <Chip active={!f.blockingClause} onClick={() => sbPatchFrame(i, { blockingId: "", blockingClause: "" })}>None</Chip>
+                      {sbLocBlockings.map((b) => (
+                        <Chip key={b.id} active={f.blockingId === b.id && !!f.blockingClause} onClick={() => sbPatchFrame(i, { blockingId: b.id, blockingClause: compileBlockingClause(b, sbLocEntry.subAreas || []) })}>{b.name}</Chip>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {sbFramePrompts[i] ? (
                   <div className="rounded p-3" style={{ backgroundColor: COLORS.console, border: `1px solid ${COLORS.panelBorder}` }}>
                     <div className="flex items-center justify-between mb-2">
