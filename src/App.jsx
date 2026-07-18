@@ -520,9 +520,9 @@ export default function CinemaPromptStudio() {
       const detailObj = CM_DETAIL_OPTIONS.find((d) => d.id === cmDetail) || CM_DETAIL_OPTIONS[0];
       const panels = [
         "Panel 1 (top-left): Full body front — straight-on neutral stance, weight even, arms relaxed at the sides, full styling readable from head to footwear, the ENTIRE body visible from the top of the head to the soles of both feet, standing upright, with clear headroom and footroom inside the panel, nothing cropped by the panel edge.",
-        "Panel 2 (top-center): Side profile close headshot, left side — tight crop from collarbone up, the character's left profile facing screen-right, hair fall, ear, jaw and chin geometry clearly readable.",
+        "Panel 2 (top-center): Side profile close headshot, left side — tight crop from collarbone up, the character's LEFT profile — nose pointing toward the RIGHT edge of the frame, hair fall, ear, jaw and chin geometry clearly readable.",
         "Panel 3 (top-right): Full body back — straight back view, showing hair fall from behind, garment drape, and footwear from behind, the ENTIRE body visible from the top of the head to the soles of both feet, standing upright, with clear headroom and footroom inside the panel, nothing cropped by the panel edge.",
-        "Panel 4 (bottom-left): Side profile close headshot, right side — tight crop from collarbone up, the character's right profile facing screen-left, a mirror of Panel 2 from the opposite side.",
+        "Panel 4 (bottom-left): Side profile close headshot, right side — tight crop from collarbone up, the character's RIGHT profile — nose pointing toward the LEFT edge of the frame, the OPPOSITE direction from Panel 2; Panels 2 and 4 must never face the same direction.",
         "Panel 5 (bottom-center): Front face close headshot — tight crop from collarbone up, body squared to camera, face filling the frame, eyes to camera, skin texture and facial structure clearly readable.",
         `Panel 6 (bottom-right): Detail shot — ${detailObj.clause}.`,
       ].join("\n");
@@ -1823,6 +1823,7 @@ export default function CinemaPromptStudio() {
                 <ChevronDown size={14} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: COLORS.steel, pointerEvents: "none" }} />
               </div>
               <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>{CHARMAKER_OUTPUTS.find((o) => o.id === cmOutput).desc}</p>
+              <p className="text-xs mt-1" style={{ fontFamily: fBody, color: COLORS.steel }}>Set your AI tool's aspect ratio to: {CHARMAKER_OUTPUTS.find((o) => o.id === cmOutput).aspect} — the prompt itself stays aspect-free.</p>
             </Panel>
 
             <Panel>

@@ -351,7 +351,7 @@ export const CM_BASELINE_WARDROBE = {
 };
 
 export const CM_DETAIL_OPTIONS = [
-  { id: "hands", label: "Hands & nails", clause: "a tight close-up of the hands and nails, both hands relaxed and clearly visible, skin texture and nail detail readable, filling the panel cleanly, hands shown against the plain mid-gray backdrop only, no props, no fabric, no surfaces" },
+  { id: "hands", label: "Hands & nails", clause: "a tight close-up of the hands and nails, both hands relaxed and slightly raised in mid-air against the plain mid-gray backdrop, photographed straight-on at hand level, skin texture and nail detail readable, filling the panel cleanly — never laid flat on a surface, never viewed from above, no props, no fabric, no tabletop" },
   { id: "jewelry", label: "Jewelry", clause: "a tight close-up of the character's key jewelry piece, metal surface detail readable, filling the panel cleanly" },
   { id: "piercing", label: "Piercing", clause: "a tight close-up of the character's piercing, exact position and metal readable, filling the panel cleanly" },
   { id: "marker", label: "Tattoo / marker", clause: "a tight close-up of the character's distinguishing mark or tattoo, placement and detail readable, filling the panel cleanly" },
@@ -370,11 +370,11 @@ export const SB_LIGHTING = [
 ];
 
 export const CHARMAKER_OUTPUTS = [
-  { id: "hero", label: "Identity plate (hero)", desc: "One neutral master reference headshot — baseline wardrobe, no styling, locked studio formula" },
-  { id: "sheet", label: "Character sheet (1 image)", desc: "A 3x2 grid: full body front, both side profiles, back, face close-up, and one detail shot" },
-  { id: "fullbody", label: "Full body + outfit (1 image)", desc: "One head-to-toe photograph of the character wearing the outfit" },
-  { id: "outfitsheet", label: "Outfit sheet (1 image)", desc: "A 3-panel grid: outfit front and back framed from the neck down, plus one neutral face close-up anchor" },
-  { id: "expressions", label: "Expression sheet (1 image)", desc: "A 3x3 grid: the identical face showing nine different expressions" },
+  { id: "hero", label: "Identity plate (hero)", desc: "One neutral master reference headshot — baseline wardrobe, no styling, locked studio formula", aspect: "3:4 portrait" },
+  { id: "sheet", label: "Character sheet (1 image)", desc: "A 3x2 grid: full body front, both side profiles, back, face close-up, and one detail shot", aspect: "16:9 wide" },
+  { id: "fullbody", label: "Full body + outfit (1 image)", desc: "One head-to-toe photograph of the character wearing the outfit", aspect: "2:3 vertical" },
+  { id: "outfitsheet", label: "Outfit sheet (1 image)", desc: "A 3-panel grid: outfit front and back framed from the neck down, plus one neutral face close-up anchor", aspect: "16:9 wide" },
+  { id: "expressions", label: "Expression sheet (1 image)", desc: "A 3x3 grid: the identical face showing nine different expressions", aspect: "1:1 square" },
 ];
 
 export const CHARMAKER_OUTFIT_PANELS = [
