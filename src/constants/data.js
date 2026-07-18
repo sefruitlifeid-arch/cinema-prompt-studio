@@ -383,7 +383,10 @@ export const CHARMAKER_OUTFIT_PANELS = [
   "a chest-up close-up of the character's face with a neutral expression, as the identity anchor",
 ];
 
-export const CHARMAKER_EXPRESSIONS_9 = EXPRESSION_GROUPS.flatMap((g) => g.items).slice(0, 9);
+// Curated nine for the expression sheet — covers the emotional range, not just the first group.
+export const CHARMAKER_EXPRESSIONS_9 = ["neutral", "warm-smile", "genuine-laugh", "confident", "sad", "angry", "fear", "surprised", "intense"]
+  .map((id) => EXPRESSION_GROUPS.flatMap((g) => g.items).find((e) => e.id === id))
+  .filter(Boolean);
 
 export const ID_AGE = [
   { id: "teen", label: "Teen (16)", phrase: "a teenager, approximately 16 years old" },

@@ -55,7 +55,9 @@ export default function CinemaPromptStudio() {
   const [tilt, setTilt] = useState(0);
   const [cineRefLocked, setCineRefLocked] = useState(false);
   const [cineOutfitRef, setCineOutfitRef] = useState(false);
-  const [photoAspectId, setPhotoAspectId] = useState("free");
+  const [cineAspectId, setCineAspectId] = useState("free");
+  const [prodAspectId, setProdAspectId] = useState("free");
+  const [locAspectId, setLocAspectId] = useState("free");
   const [compId, setCompId] = useState("thirds");
   const [skinTexture, setSkinTexture] = useState(true);
   const [opticalImperfection, setOpticalImperfection] = useState(true);
@@ -212,7 +214,8 @@ export default function CinemaPromptStudio() {
   const genre = GENRES.find((g) => g.id === genreId);
   const shot = SHOT_TYPES.find((s) => s.id === shotId);
   const comp = COMPOSITIONS.find((c) => c.id === compId);
-  const photoAspect = PHOTO_ASPECTS.find((a) => a.id === photoAspectId);
+  const cineAspect = PHOTO_ASPECTS.find((a) => a.id === cineAspectId);
+  const prodAspect = PHOTO_ASPECTS.find((a) => a.id === prodAspectId);
   const key = KEY_DIRECTIONS.find((k) => k.id === keyId);
   const quality = LIGHT_QUALITIES.find((q) => q.id === qualityId);
   // expression is now a phrase string stored directly in expressionPhrase
@@ -251,14 +254,9 @@ export default function CinemaPromptStudio() {
 
   // ---------- Cinema compiler ----------
   const cinemaPrompt = useMemo(() => {
-    const isRef = identitySource === "reference";
-    if (!cineRefLocked && !isRef && !character.trim()) return null;
+    if (!cineRefLocked && !character.trim()) return null;
     const opening = `A ${genre.mood} ${shot.phrase}, ${anglePhrase(rotation, tilt)}, ${comp.phrase}.`;
-    const charSentence = cineRefLocked
-      ? REF_ANCHOR_CLAUSE
-      : isRef
-      ? `Use the attached photo as the identity reference: preserve this person's face, features, skin tone, hair and overall likeness exactly — do not alter their identity in any way.${character.trim() ? ` (${character.trim()})` : ""} Change only the visual direction described below.`
-      : `${character.trim()}.`;
+    const charSentence = cineRefLocked ? REF_ANCHOR_CLAUSE : `${character.trim()}.`;
     const actionSentence = action.trim() ? `They are ${action.trim()}.` : "";
     const outfitSentence = cineOutfitRef ? OUTFIT_ANCHOR_CLAUSE : (outfit.trim() ? `Wearing ${outfit.trim()}.` : "");
     const prodIdentity = injectedProduct ? ` The product: ${injectedProduct.text}` : "";
@@ -278,17 +276,17 @@ export default function CinemaPromptStudio() {
       : "";
     const realismSentence = realismForShot(shotId, { eyeSentence, skinTexture, opticalImperfection });
     const closing = antiAI ? "Real photographic frame captured on a real camera — no CGI, no plastic, no AI smoothness, no skin smoothing." : "";
-    const aspectSentence = photoAspect && photoAspect.phrase ? `${photoAspect.phrase.charAt(0).toUpperCase()}${photoAspect.phrase.slice(1)}.` : "";
+    const aspectSentence = cineAspect && cineAspect.phrase ? `${cineAspect.phrase.charAt(0).toUpperCase()}${cineAspect.phrase.slice(1)}.` : "";
     const refProportion = cineRefLocked ? "Figure proportions anatomically correct and consistent with the reference." : "";
     return [opening, charSentence, actionSentence, outfitSentence, productSentence, locationSentence, blockingSentence, placeSentence, cameraSentence, lightingSentence, expressionSentence, realismSentence, brandClause, aspectSentence, closing, refProportion]
       .filter(Boolean)
       .join(" ");
-  }, [identitySource, character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, photoAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, cineRefLocked, cineOutfitRef, cineBlockingClause]);
+  }, [character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, cineAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, cineRefLocked, cineOutfitRef, cineBlockingClause]);
 
   // ---------- Product compiler ----------
   const productPrompt = useMemo(() => {
     if (!productDesc.trim()) return null;
-    const aspectSentence = photoAspect && photoAspect.phrase ? `${photoAspect.phrase.charAt(0).toUpperCase()}${photoAspect.phrase.slice(1)}.` : "";
+    const aspectSentence = prodAspect && prodAspect.phrase ? `${prodAspect.phrase.charAt(0).toUpperCase()}${prodAspect.phrase.slice(1)}.` : "";
     const identity = productDesc.trim();
 
     if (productOutput === "clean") {
@@ -344,7 +342,7 @@ export default function CinemaPromptStudio() {
     return [opening, materialSentence, lightingSentence, bgSentence, reflectionSentence, shadowSentence, brandClause, aspectSentence, closing]
       .filter(Boolean)
       .join(" ");
-  }, [productDesc, productOutput, materialId, prodLightId, prodBgId, prodAngleId, prodRealReflection, prodContactShadow, photoAspectId, brandClause]);
+  }, [productDesc, productOutput, materialId, prodLightId, prodBgId, prodAngleId, prodRealReflection, prodContactShadow, prodAspectId, brandClause]);
 
   // ---------- Design compiler ----------
   const designPrompt = useMemo(() => {
@@ -583,7 +581,7 @@ export default function CinemaPromptStudio() {
     identitySource, character, action, outfit, location, shotId, rotation, tilt, compId, cineRefLocked, cineOutfitRef,
     skinTexture, opticalImperfection, antiAI, eyeEngine, expressionPhrase,
     charPlacement, charPx, charPy,
-    photoAspectId, injectProduct, productInteraction, injectedProductId, manualInstruction, creativeContext, contextTypeId, applyBrand,
+    cineAspectId, prodAspectId, locAspectId, injectProduct, productInteraction, injectedProductId, manualInstruction, creativeContext, contextTypeId, applyBrand,
     productOutput, productDesc, materialId, prodLightId, prodBgId, prodAngleId, prodRealReflection, prodContactShadow,
     locationOutput, locationDesc, timeOfDay, weatherId,
     designDesc, aspectId, thumbLayout, colorTreat, renderStyle, textStyle, designLegibility,
@@ -600,10 +598,12 @@ export default function CinemaPromptStudio() {
       lensId: setLensId, sensor: setSensor, focalIdx: setFocalIdx, apertureIdx: setApertureIdx,
       genreId: setGenreId, keyId: setKeyId, qualityId: setQualityId, kelvin: setKelvin,
       subject: setCharacter, setting: setLocation,
-      identitySource: setIdentitySource, character: setCharacter, action: setAction, outfit: setOutfit, location: setLocation,
+      identitySource: (v) => { setIdentitySource("describe"); if (v === "reference") setCineRefLocked(true); },
+      character: setCharacter, action: setAction, outfit: setOutfit, location: setLocation,
       shotId: setShotId, rotation: setRotation, tilt: setTilt, compId: setCompId,
       cineRefLocked: setCineRefLocked, cineOutfitRef: setCineOutfitRef,
-      photoAspectId: setPhotoAspectId,
+      photoAspectId: (v) => { setCineAspectId(v); setProdAspectId(v); setLocAspectId(v); },
+      cineAspectId: setCineAspectId, prodAspectId: setProdAspectId, locAspectId: setLocAspectId,
       charPlacement: setCharPlacement, charPx: setCharPx, charPy: setCharPy,
       injectProduct: setInjectProduct, productInteraction: setProductInteraction, injectedProductId: setInjectedProductId,
       manualInstruction: setManualInstruction, creativeContext: setCreativeContext, contextTypeId: setContextTypeId, applyBrand: setApplyBrand,
@@ -1055,25 +1055,15 @@ export default function CinemaPromptStudio() {
                 checked={cineRefLocked}
                 onChange={setCineRefLocked}
                 label="Character reference attached"
-                description="On: you will attach the character's saved reference image in your AI tool. Identity is anchored to the image, not re-described."
+                description="On: you will attach the character's reference image in your AI tool. Identity is anchored to the image, not re-described. This replaces the old reference-photo mode."
               />
               {cineRefLocked ? (
                 <p className="text-xs mt-1 mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>
                   Identity is anchored to the attached reference image — the identity inputs below are ignored while this is on.
                 </p>
               ) : (
-              <>
-              <div className="flex gap-2 mb-3 mt-2">
-                {[
-                  { id: "describe", label: "Describe identity" },
-                  { id: "reference", label: "Reference photo attached" },
-                ].map((s) => (
-                  <Chip key={s.id} active={identitySource === s.id} onClick={() => setIdentitySource(s.id)}>{s.label}</Chip>
-                ))}
-              </div>
-              {identitySource === "describe" ? (
                 <>
-                  <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>
+                  <div className="text-xs mb-2 mt-2" style={{ fontFamily: fBody, color: COLORS.steel }}>
                     Fixed identity — keep this <span style={{ color: COLORS.amber }}>exactly the same</span> across every frame for a consistent character
                   </div>
                   <textarea
@@ -1092,22 +1082,6 @@ export default function CinemaPromptStudio() {
                     linkLabel="Extract identity from a reference photo →"
                   />
                 </>
-              ) : (
-                <>
-                  <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>
-                    You'll attach the person's photo in your gen tool. The prompt will <span style={{ color: COLORS.amber }}>lock their likeness</span> and change only the visual direction (lighting, mood, wardrobe, location, angle) you set below.
-                  </div>
-                  <textarea
-                    value={character}
-                    onChange={(e) => setCharacter(e.target.value)}
-                    placeholder="Optional short note about the person, e.g. keep her glasses on"
-                    rows={2}
-                    className="w-full rounded p-3 text-sm resize-none"
-                    style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.amberDim}` }}
-                  />
-                </>
-              )}
-              </>
               )}
 
               {/* Character library */}
@@ -1312,7 +1286,7 @@ export default function CinemaPromptStudio() {
               <div>
                 <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Aspect ratio</div>
                 <div className="flex flex-wrap">
-                  {PHOTO_ASPECTS.map((a) => (<Chip key={a.id} active={a.id === photoAspectId} onClick={() => setPhotoAspectId(a.id)}>{a.label}</Chip>))}
+                  {PHOTO_ASPECTS.map((a) => (<Chip key={a.id} active={a.id === cineAspectId} onClick={() => setCineAspectId(a.id)}>{a.label}</Chip>))}
                 </div>
               </div>
             </Panel>
@@ -1443,7 +1417,7 @@ export default function CinemaPromptStudio() {
             <Panel>
               <Eyebrow>07 — Aspect Ratio</Eyebrow>
               <div className="flex flex-wrap">
-                {PHOTO_ASPECTS.map((a) => (<Chip key={a.id} active={a.id === photoAspectId} onClick={() => setPhotoAspectId(a.id)}>{a.label}</Chip>))}
+                {PHOTO_ASPECTS.map((a) => (<Chip key={a.id} active={a.id === prodAspectId} onClick={() => setProdAspectId(a.id)}>{a.label}</Chip>))}
               </div>
             </Panel>
 
@@ -1609,7 +1583,7 @@ export default function CinemaPromptStudio() {
             </Panel>
             <Panel>
               <Eyebrow>04 — Aspect Ratio</Eyebrow>
-              <div className="flex flex-wrap">{PHOTO_ASPECTS.map((a) => <Chip key={a.id} active={a.id === photoAspectId} onClick={() => setPhotoAspectId(a.id)}>{a.label}</Chip>)}</div>
+              <div className="flex flex-wrap">{PHOTO_ASPECTS.map((a) => <Chip key={a.id} active={a.id === locAspectId} onClick={() => setLocAspectId(a.id)}>{a.label}</Chip>)}</div>
             </Panel>
             </>)}
 
@@ -1900,7 +1874,7 @@ export default function CinemaPromptStudio() {
                   <div className="mb-3">
                     <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Gender</div>
                     <div className="flex flex-wrap">
-                      {ID_GENDER.map((g) => <Chip key={g.id} active={cmGender === g.id} onClick={() => setCmGender(cmGender === g.id ? "" : g.id)}>{g.label}</Chip>)}
+                      {ID_GENDER.map((g) => <Chip key={g.id} active={cmGender === g.id} onClick={() => { const next = cmGender === g.id ? "" : g.id; setCmGender(next); if (next === "man") setCmBaseGender("male"); else if (next === "woman") setCmBaseGender("female"); }}>{g.label}</Chip>)}
                     </div>
                   </div>
                   <div className="mb-3">
@@ -2123,7 +2097,7 @@ export default function CinemaPromptStudio() {
                   <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${COLORS.ink}22` }}>
                     <p className="text-xs" style={{ fontFamily: fMono, color: COLORS.ink, opacity: 0.6 }}>
                       {mode === "cinema"
-                        ? `${lens.name} · ${focalLength}mm · f/${aperture} · ${sensor}${photoAspect.phrase ? " · " + photoAspect.label : ""}${applyBrand && brandHasContent ? " · BRAND" : ""}`
+                        ? `${lens.name} · ${focalLength}mm · f/${aperture} · ${sensor}${cineAspect.phrase ? " · " + cineAspect.label : ""}${applyBrand && brandHasContent ? " · BRAND" : ""}`
                         : mode === "product"
                         ? `${PRODUCT_OUTPUTS.find((o) => o.id === productOutput).label} · ${material.label} · ${prodLight.label}${applyBrand && brandHasContent ? " · BRAND" : ""}`
                         : mode === "location" ? `${LOCATION_OUTPUTS.find((o) => o.id === locationOutput).label} · ${tod ? tod.label : ""} · ${weather ? weather.label : ""}${applyBrand && brandHasContent ? " · BRAND" : ""}`
