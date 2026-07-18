@@ -11,7 +11,7 @@ import {
   PRODUCT_OUTPUTS, SHEET_ANGLES, MATERIALS, PRODUCT_LIGHTING, PRODUCT_BG, PRODUCT_ANGLE,
   ASPECTS, THUMB_LAYOUTS, COLOR_TREATMENTS, RENDER_STYLES, TEXT_STYLES, FONT_STYLE_CHIPS, THUMB_TYPES,
   EMPTY_BRAND,
-  CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9, CHARMAKER_OUTFIT_PANELS,
+  CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9,
   ANTI_TEXT_CLAUSE, FLAT_GRADE_CLOSE, SKIN_CONSISTENCY_CLAUSE, REALISM_CLOSE, REF_ANCHOR_CLAUSE, OUTFIT_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
   STYLE_VIBES,
@@ -166,6 +166,7 @@ export default function CinemaPromptStudio() {
   const [cmBaseGender, setCmBaseGender] = useState("female"); // baseline wardrobe fork
   const [cmRefLocked, setCmRefLocked] = useState(false);
   const [cmDetail, setCmDetail] = useState("hands");
+  const [cmNeckline, setCmNeckline] = useState("closed");
   const [cmSavingOpen, setCmSavingOpen] = useState(false);
   const [cmName, setCmName] = useState("");
   const [cmSource, setCmSource] = useState("scratch");
@@ -550,11 +551,18 @@ export default function CinemaPromptStudio() {
 
     if (output === "outfitsheet") {
       if (!cmOutfit.trim()) return null;
-      const panels = CHARMAKER_OUTFIT_PANELS.map((p, i) => `Panel ${i + 1}: ${p}.`).join("\n");
+      const leftPanel = cmNeckline === "open"
+        ? "LEFT PANEL — full body front view, headless. The full figure stands squared to camera from the shoulders down to the footwear, arms relaxed at the sides, hands open and loose, weight even across both feet. There is no head and no hair — no hair falls across the chest or shoulders. The neck rises a short way from the shoulders and terminates in a clean, flat, sharply defined horizontal edge at the base of the throat, exactly like a headless dress-form mannequin — a crisp sculptural cut with a clean visible edge, not blurred, not faded, not dissolving, no wisps, no smoke, no ghosting, no transparency, no blood, no anatomy detail at the cut. Above that clean edge there is only empty mid-gray backdrop. The panel keeps full headroom — generous empty space above the shoulders where the head would be — so the figure sits in the frame at the same scale and position as a normal full-body portrait."
+        : "LEFT PANEL — full body front view, no head, no neck, and no hair. The body stands squared to camera from the shoulders down to the footwear, arms relaxed at the sides, hands open and loose, weight even across both feet. There is no head, no neck, and no hair at all — nothing rises above the shoulder line, and no hair falls across the chest or shoulders. The garment's neckline holds its own shape at the top of the garment and its opening is an empty dark hollow looking down into the inside of the garment, with the inner back of the fabric faintly visible inside the opening. The garment reads as if worn by an invisible body — full three-dimensional shape, natural drape, real fabric tension across the chest and shoulders, but nothing emerging from the neckline. No stump, no skin, no cut edge, no anatomy, no blood, no fade, no blur, no ghosting, no transparency in the body. The panel keeps full headroom, generous empty mid-gray backdrop above the shoulders, so the figure sits at the same scale and position in the frame as a normal full-body portrait.";
+      const panels = [
+        leftPanel,
+        "CENTER PANEL — full body rear view, head attached. The same figure photographed from directly behind, standing straight, hair fall from behind fully visible, the garment's back construction, seams, hem, and footwear all readable, arms relaxed at the sides, hands loose, weight even across both feet, from the top of the head down to the footwear.",
+        "RIGHT PANEL — tight chest-up portrait, identity lock. The same figure framed from just above the top of the head down to the collarbones and the very top of the garment only, the face filling most of the panel, a true close-up. Body squared to camera, head level, eyes directly to camera, lips closed and relaxed, neutral controlled expression, hair, brows, lashes, and lip texture clearly readable at close range. The face appears ONLY in this anchor panel so downstream video tools take identity from this single face.",
+      ].join("\n");
       return [
         `A 3-panel outfit reference sheet on a single wide 16:9 canvas divided into three equal-sized cells in a row, every cell identical in width and height, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Every panel shows the same single character — ${identityBlock} — wearing ${outfitLine}.`,
         panels,
-        "The clothing, fabric, colors and details must be pixel-consistent across all panels. The face appears ONLY in the third anchor panel so downstream video tools take identity from that single face.",
+        "The clothing, fabric, colors and details must be pixel-consistent across all panels.",
         flatUniform("three"),
         SKIN_CONSISTENCY_CLAUSE,
         ANTI_TEXT_CLAUSE,
@@ -562,7 +570,7 @@ export default function CinemaPromptStudio() {
     }
 
     return null;
-  }, [cmOutput, cmIdentityText, cmRefLocked, cmBaseGender, cmDetail, cmVibe, cmOutfit]);
+  }, [cmOutput, cmIdentityText, cmRefLocked, cmBaseGender, cmDetail, cmNeckline, cmVibe, cmOutfit]);
 
   const contextClause = creativeContext && contextType ? contextType.phrase : "";
   const basePrompt = mode === "cinema" ? cinemaPrompt : mode === "product" ? productPrompt : mode === "location" ? locationPrompt : mode === "assemble" ? assemblePrompt : mode === "charmaker" ? characterPrompt : mode === "blocking" ? (blClause || null) : designPrompt;
@@ -592,7 +600,7 @@ export default function CinemaPromptStudio() {
     sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbDirection, sbAspect, sbRefLocked, sbFrames,
     cmOutput, cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild,
     cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmSource,
-    cmBaseGender, cmRefLocked, cmDetail,
+    cmBaseGender, cmRefLocked, cmDetail, cmNeckline,
     blLocationId, cineBlockingId, cineLocationId,
   });
 
@@ -629,7 +637,7 @@ export default function CinemaPromptStudio() {
       cmHairLength: setCmHairLength, cmHairTexture: setCmHairTexture, cmBuild: setCmBuild,
       cmMarks: setCmMarks, cmIdentityText: setCmIdentityText, cmIdentityDirty: setCmIdentityDirty,
       cmOutfit: setCmOutfit, cmVibe: setCmVibe, cmSource: setCmSource,
-      cmBaseGender: setCmBaseGender, cmRefLocked: setCmRefLocked, cmDetail: setCmDetail,
+      cmBaseGender: setCmBaseGender, cmRefLocked: setCmRefLocked, cmDetail: setCmDetail, cmNeckline: setCmNeckline,
       blLocationId: setBlLocationId, cineBlockingId: setCineBlockingId, cineLocationId: setCineLocationId,
     };
     Object.entries(d).forEach(([k, v]) => { if (setters[k]) setters[k](v); });
@@ -2030,6 +2038,18 @@ export default function CinemaPromptStudio() {
                     <div className="flex flex-wrap">
                       {CM_DETAIL_OPTIONS.map((d) => <Chip key={d.id} active={cmDetail === d.id} onClick={() => setCmDetail(d.id)}>{d.label}</Chip>)}
                     </div>
+                  </div>
+                )}
+                {cmOutput === "outfitsheet" && (
+                  <div className="mt-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Neckline</div>
+                    <div className="flex flex-wrap mb-1">
+                      {[
+                        { id: "closed", label: "Closed / collared neckline" },
+                        { id: "open", label: "Open / strapless neckline" },
+                      ].map((n) => (<Chip key={n.id} active={cmNeckline === n.id} onClick={() => setCmNeckline(n.id)}>{n.label}</Chip>))}
+                    </div>
+                    <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel }}>Pick by the outfit's neckline — it controls how the headless front panel is cut.</p>
                   </div>
                 )}
               </Panel>

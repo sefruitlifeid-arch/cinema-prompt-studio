@@ -377,7 +377,7 @@ export const CHARMAKER_OUTPUTS = [
   { id: "hero", label: "Identity plate (hero)", desc: "One neutral master reference headshot — baseline wardrobe, no styling, locked studio formula", aspect: "3:4 portrait" },
   { id: "sheet", label: "Character sheet (1 image)", desc: "An asymmetric grid: two full-height body columns (front & back) plus four headshot cells (profiles, face, detail)", aspect: "16:9 wide" },
   { id: "fullbody", label: "Full body + outfit (1 image)", desc: "One head-to-toe photograph of the character wearing the outfit", aspect: "2:3 vertical" },
-  { id: "outfitsheet", label: "Outfit sheet (1 image)", desc: "A 3-panel grid: outfit front and back framed from the neck down, plus one neutral face close-up anchor", aspect: "16:9 wide" },
+  { id: "outfitsheet", label: "Outfit sheet (1 image)", desc: "A 3-panel grid: headless front (ghost mannequin), rear view with head, and a chest-up face-lock close-up", aspect: "16:9 wide" },
   { id: "expressions", label: "Expression sheet (1 image)", desc: "A 3x3 grid: the identical face showing nine different expressions", aspect: "1:1 square" },
 ];
 
