@@ -12,7 +12,7 @@ import {
   ASPECTS, THUMB_LAYOUTS, COLOR_TREATMENTS, RENDER_STYLES, TEXT_STYLES, FONT_STYLE_CHIPS, THUMB_TYPES,
   EMPTY_BRAND,
   CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9, CHARMAKER_OUTFIT_PANELS,
-  ANTI_TEXT_CLAUSE, LOCKED_BACKDROP_LIGHT, REALISM_CLOSE, REF_ANCHOR_CLAUSE, OUTFIT_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
+  ANTI_TEXT_CLAUSE, FLAT_GRADE_CLOSE, SKIN_CONSISTENCY_CLAUSE, REALISM_CLOSE, REF_ANCHOR_CLAUSE, OUTFIT_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
   STYLE_VIBES,
 } from "./constants/data";
@@ -22,9 +22,10 @@ import { PRESET_KEY, CHAR_KEY, PRODUCT_KEY, BRAND_KEY, LOCATION_KEY, memStore, s
 import { Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper } from "./components/primitives";
 import { PlacementCanvas, TextPlacement, AngleOrbit, BlockingCanvas } from "./components/canvases";
 
-// Locked backdrop variant for multi-panel sheets ("six" / "three" / "nine" panels)
-const lockedBackdropUniform = (n) =>
-  LOCKED_BACKDROP_LIGHT.replace("studio background —", `studio backdrop applied uniformly across all ${n} panels —`);
+// Flat-grade variant for multi-panel sheets ("six" / "three" / "nine" panels)
+const flatUniform = (n) => FLAT_GRADE_CLOSE
+  .replace("Background is an even neutral mid-gray seamless, completely flat —", `Background in every panel is the same even neutral mid-gray seamless, completely flat and identical across all ${n} panels —`)
+  .replace("Zero shadow cast onto the background", `Zero shadow cast onto the background in any panel`);
 
 export default function CinemaPromptStudio() {
   const [mode, setMode] = useState("cinema");
@@ -491,7 +492,6 @@ export default function CinemaPromptStudio() {
     const pronoun = cmBaseGender === "male" ? "He" : "She";
     const vibeObj = STYLE_VIBES.find((v) => v.id === cmVibe);
     const outfitLine = [vibeObj ? vibeObj.phrase : "", cmOutfit.trim()].filter(Boolean).join(", ");
-    const close = `${REALISM_CLOSE} ${ANTI_TEXT_CLAUSE}`;
 
     if (output === "hero") {
       return [
@@ -499,8 +499,8 @@ export default function CinemaPromptStudio() {
         identityBlock,
         `${pronoun} wears ${baseline}.`,
         "Body squared to camera, head level, neutral relaxed expression, eyes to camera, lips closed and relaxed, subtle controlled energy.",
-        LOCKED_BACKDROP_LIGHT,
-        close,
+        FLAT_GRADE_CLOSE,
+        ANTI_TEXT_CLAUSE,
       ].join(" ");
     }
 
@@ -510,8 +510,9 @@ export default function CinemaPromptStudio() {
       return [
         `A 9-panel character expression reference sheet on a single square canvas divided into equal-sized cells in a 3-column by 3-row grid, every cell identical in width and height, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character from the same chest-up angle — ${identityBlock} ${pronoun} wears ${baseline}.`,
         panelLines,
-        `${lockedBackdropUniform("nine")} The face and identity must be absolutely consistent across all nine panels — same bone structure, same skin, same hair, same proportions in every cell. Only the expression changes.`,
-        close,
+        `${flatUniform("nine")} The face and identity must be absolutely consistent across all nine panels — same bone structure, same skin, same hair, same proportions in every cell. Only the expression changes.`,
+        SKIN_CONSISTENCY_CLAUSE,
+        ANTI_TEXT_CLAUSE,
       ].join("\n\n");
     }
 
@@ -529,8 +530,9 @@ export default function CinemaPromptStudio() {
       return [
         `A 6-panel character reference sheet on a single wide 16:9 canvas with an asymmetric layout: the LEFT HALF is two tall full-height columns side by side (Panel 1 and Panel 2, each a full-height portrait cell); the RIGHT HALF is a 2x2 grid of four equal square cells (Panels 3-6). Panels separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
         panels,
-        `${lockedBackdropUniform("six")} Sharp focus across every panel. Identical character identity locked across all six panels — same face, same skin, same hair, same wardrobe, same accessories, same proportions in every cell.`,
-        close,
+        `${flatUniform("six")} Sharp focus across every panel. Identical character identity locked across all six panels — same face, same skin, same hair, same wardrobe, same accessories, same proportions in every cell.`,
+        SKIN_CONSISTENCY_CLAUSE,
+        ANTI_TEXT_CLAUSE,
       ].join("\n\n");
     }
 
@@ -541,8 +543,8 @@ export default function CinemaPromptStudio() {
         identityBlock,
         `The character wears ${outfitLine}, head to toe.`,
         "Standing angled slightly from camera, weight shifted naturally, head level, neutral relaxed expression, eyes to camera. Framed full body from head to just below the footwear.",
-        LOCKED_BACKDROP_LIGHT,
-        close,
+        FLAT_GRADE_CLOSE,
+        ANTI_TEXT_CLAUSE,
       ].join(" ");
     }
 
@@ -553,8 +555,9 @@ export default function CinemaPromptStudio() {
         `A 3-panel outfit reference sheet on a single wide 16:9 canvas divided into three equal-sized cells in a row, every cell identical in width and height, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Every panel shows the same single character — ${identityBlock} — wearing ${outfitLine}.`,
         panels,
         "The clothing, fabric, colors and details must be pixel-consistent across all panels. The face appears ONLY in the third anchor panel so downstream video tools take identity from that single face.",
-        `${lockedBackdropUniform("three")}`,
-        close,
+        flatUniform("three"),
+        SKIN_CONSISTENCY_CLAUSE,
+        ANTI_TEXT_CLAUSE,
       ].join("\n\n");
     }
 
