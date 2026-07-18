@@ -1,3 +1,12 @@
+import { REF_ANCHOR_CLAUSE } from "../constants/data";
+
+// Reference-lock anchor sentence, optionally prefixed with a short visual handle
+// (useful when more than one person is in frame).
+export const refAnchor = (handle) => {
+  const h = (handle || "").trim();
+  return h ? `${h.charAt(0).toUpperCase() + h.slice(1)} — the exact same character as the attached reference image: identical face, bone structure, skin tone, hair color and texture, and body proportions. Do not alter the identity in any way.` : REF_ANCHOR_CLAUSE;
+};
+
 // Translate orbit values (rotation/tilt) into a natural camera-angle phrase.
 export function anglePhrase(rotation, tilt) {
   const r = ((rotation % 360) + 360) % 360;

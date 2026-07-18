@@ -12,11 +12,11 @@ import {
   ASPECTS, THUMB_LAYOUTS, COLOR_TREATMENTS, RENDER_STYLES, TEXT_STYLES, FONT_STYLE_CHIPS, THUMB_TYPES,
   EMPTY_BRAND,
   CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9,
-  ANTI_TEXT_CLAUSE, FLAT_GRADE_CLOSE, SKIN_CONSISTENCY_CLAUSE, REALISM_CLOSE, REF_ANCHOR_CLAUSE, OUTFIT_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
+  ANTI_TEXT_CLAUSE, FLAT_GRADE_CLOSE, SKIN_CONSISTENCY_CLAUSE, REALISM_CLOSE, OUTFIT_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
   STYLE_VIBES,
 } from "./constants/data";
-import { anglePhrase, placementPhrase, textPositionPhrase, polar, bladePoints, realismForShot } from "./utils/phrases";
+import { anglePhrase, placementPhrase, textPositionPhrase, polar, bladePoints, realismForShot, refAnchor } from "./utils/phrases";
 import { parseSubAreas, compileBlockingClause } from "./utils/blocking";
 import { PRESET_KEY, CHAR_KEY, PRODUCT_KEY, BRAND_KEY, LOCATION_KEY, memStore, store, copyText } from "./utils/storage";
 import { Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper } from "./components/primitives";
@@ -55,6 +55,7 @@ export default function CinemaPromptStudio() {
   const [rotation, setRotation] = useState(30);
   const [tilt, setTilt] = useState(0);
   const [cineRefLocked, setCineRefLocked] = useState(false);
+  const [cineRefHandle, setCineRefHandle] = useState("");
   const [cineOutfitRef, setCineOutfitRef] = useState(false);
   const [cineAspectId, setCineAspectId] = useState("free");
   const [prodAspectId, setProdAspectId] = useState("free");
@@ -140,6 +141,7 @@ export default function CinemaPromptStudio() {
   const [sbDirection, setSbDirection] = useState("");
   const [sbAspect, setSbAspect] = useState("169");
   const [sbRefLocked, setSbRefLocked] = useState(false);
+  const [sbRefHandle, setSbRefHandle] = useState("");
   const [sbFrames, setSbFrames] = useState(() => [newFrame()]);
   const [sbCopiedId, setSbCopiedId] = useState("");
   const [sbSheetCopied, setSbSheetCopied] = useState(false);
@@ -165,6 +167,7 @@ export default function CinemaPromptStudio() {
   const [cmVibe, setCmVibe] = useState("");
   const [cmBaseGender, setCmBaseGender] = useState("female"); // baseline wardrobe fork
   const [cmRefLocked, setCmRefLocked] = useState(false);
+  const [cmRefHandle, setCmRefHandle] = useState("");
   const [cmDetail, setCmDetail] = useState("hands");
   const [cmNeckline, setCmNeckline] = useState("closed");
   const [cmSavingOpen, setCmSavingOpen] = useState(false);
@@ -258,7 +261,7 @@ export default function CinemaPromptStudio() {
   const cinemaPrompt = useMemo(() => {
     if (!cineRefLocked && !character.trim()) return null;
     const opening = `A ${genre.mood} ${shot.phrase}, ${anglePhrase(rotation, tilt)}, ${comp.phrase}.`;
-    const charSentence = cineRefLocked ? REF_ANCHOR_CLAUSE : `${character.trim()}.`;
+    const charSentence = cineRefLocked ? refAnchor(cineRefHandle) : `${character.trim()}.`;
     const actionSentence = action.trim() ? `They are ${action.trim()}.` : "";
     const outfitSentence = cineOutfitRef ? OUTFIT_ANCHOR_CLAUSE : (outfit.trim() ? `Wearing ${outfit.trim()}.` : "");
     const prodIdentity = injectedProduct ? ` The product: ${injectedProduct.text}` : "";
@@ -283,7 +286,7 @@ export default function CinemaPromptStudio() {
     return [opening, charSentence, actionSentence, outfitSentence, productSentence, locationSentence, blockingSentence, placeSentence, cameraSentence, lightingSentence, expressionSentence, realismSentence, brandClause, aspectSentence, closing, refProportion]
       .filter(Boolean)
       .join(" ");
-  }, [character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, cineAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, cineRefLocked, cineOutfitRef, cineBlockingClause]);
+  }, [character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, cineAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, cineRefLocked, cineRefHandle, cineOutfitRef, cineBlockingClause]);
 
   // ---------- Product compiler ----------
   const productPrompt = useMemo(() => {
@@ -398,13 +401,13 @@ export default function CinemaPromptStudio() {
     const wObj = WEATHER_CONDITIONS.find((w) => w.id === sbWeather);
     const lightObj = SB_LIGHTING.find((l) => l.id === sbLighting) || SB_LIGHTING[0];
     return {
-      charLock: sbRefLocked ? REF_ANCHOR_CLAUSE : `The character: ${ch.text.replace(/\.+$/, "")}.`,
+      charLock: sbRefLocked ? refAnchor(sbRefHandle) : `The character: ${ch.text.replace(/\.+$/, "")}.`,
       prodLock: pr ? `The product must match the product reference exactly: ${pr.text.replace(/\.+$/, "")}.` : "",
       locLock: `The location: ${lo.text.replace(/\.+$/, "")}, ${todObj ? todObj.phrase : ""}, ${wObj ? wObj.phrase : ""}.`,
       lighting: `Scene lighting: ${lightObj.phrase}.`,
       charText: ch.text, locText: lo.text,
     };
-  }, [characters, products, locations, sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbRefLocked]);
+  }, [characters, products, locations, sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbRefLocked, sbRefHandle]);
 
   // Storyboard blocking injection: writes into each frame's existing blockingClause slot.
   const sbLocEntry = locations.find((l) => l.id === sbLocationId);
@@ -488,7 +491,7 @@ export default function CinemaPromptStudio() {
   const characterPrompt = useMemo(() => {
     if (!cmRefLocked && !cmIdentityText.trim()) return null;
     const output = CHARMAKER_OUTPUTS.some((o) => o.id === cmOutput) ? cmOutput : "hero";
-    const identityBlock = cmRefLocked ? REF_ANCHOR_CLAUSE : `${cmIdentityText.trim().replace(/\.+$/, "")}.`;
+    const identityBlock = cmRefLocked ? refAnchor(cmRefHandle) : `${cmIdentityText.trim().replace(/\.+$/, "")}.`;
     const baseline = CM_BASELINE_WARDROBE[cmBaseGender] || CM_BASELINE_WARDROBE.female;
     const pronoun = cmBaseGender === "male" ? "He" : "She";
     const vibeObj = STYLE_VIBES.find((v) => v.id === cmVibe);
@@ -570,7 +573,7 @@ export default function CinemaPromptStudio() {
     }
 
     return null;
-  }, [cmOutput, cmIdentityText, cmRefLocked, cmBaseGender, cmDetail, cmNeckline, cmVibe, cmOutfit]);
+  }, [cmOutput, cmIdentityText, cmRefLocked, cmRefHandle, cmBaseGender, cmDetail, cmNeckline, cmVibe, cmOutfit]);
 
   const contextClause = creativeContext && contextType ? contextType.phrase : "";
   const basePrompt = mode === "cinema" ? cinemaPrompt : mode === "product" ? productPrompt : mode === "location" ? locationPrompt : mode === "assemble" ? assemblePrompt : mode === "charmaker" ? characterPrompt : mode === "blocking" ? (blClause || null) : designPrompt;
@@ -589,7 +592,7 @@ export default function CinemaPromptStudio() {
 
   const snapshot = () => ({
     lensId, sensor, focalIdx, apertureIdx, genreId, keyId, qualityId, kelvin,
-    identitySource, character, action, outfit, location, shotId, rotation, tilt, compId, cineRefLocked, cineOutfitRef,
+    identitySource, character, action, outfit, location, shotId, rotation, tilt, compId, cineRefLocked, cineRefHandle, cineOutfitRef,
     skinTexture, opticalImperfection, antiAI, eyeEngine, expressionPhrase,
     charPlacement, charPx, charPy,
     cineAspectId, prodAspectId, locAspectId, injectProduct, productInteraction, injectedProductId, manualInstruction, creativeContext, contextTypeId, applyBrand,
@@ -597,10 +600,10 @@ export default function CinemaPromptStudio() {
     locationOutput, locationDesc, timeOfDay, weatherId,
     designDesc, aspectId, thumbLayout, colorTreat, renderStyle, textStyle, designLegibility,
     designRef, brandFontField, thumbTypeId, textBlocks,
-    sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbDirection, sbAspect, sbRefLocked, sbFrames,
+    sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbDirection, sbAspect, sbRefLocked, sbRefHandle, sbFrames,
     cmOutput, cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild,
     cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmSource,
-    cmBaseGender, cmRefLocked, cmDetail, cmNeckline,
+    cmBaseGender, cmRefLocked, cmRefHandle, cmDetail, cmNeckline,
     blLocationId, cineBlockingId, cineLocationId,
   });
 
@@ -612,7 +615,7 @@ export default function CinemaPromptStudio() {
       identitySource: (v) => { setIdentitySource("describe"); if (v === "reference") setCineRefLocked(true); },
       character: setCharacter, action: setAction, outfit: setOutfit, location: setLocation,
       shotId: setShotId, rotation: setRotation, tilt: setTilt, compId: setCompId,
-      cineRefLocked: setCineRefLocked, cineOutfitRef: setCineOutfitRef,
+      cineRefLocked: setCineRefLocked, cineRefHandle: setCineRefHandle, cineOutfitRef: setCineOutfitRef,
       photoAspectId: (v) => { setCineAspectId(v); setProdAspectId(v); setLocAspectId(v); },
       cineAspectId: setCineAspectId, prodAspectId: setProdAspectId, locAspectId: setLocAspectId,
       charPlacement: setCharPlacement, charPx: setCharPx, charPy: setCharPy,
@@ -629,7 +632,7 @@ export default function CinemaPromptStudio() {
       designRef: setDesignRef, brandFontField: setBrandFontField, thumbTypeId: setThumbTypeId, textBlocks: setTextBlocks,
       sbCharacterId: setSbCharacterId, sbProductId: setSbProductId, sbLocationId: setSbLocationId,
       sbTimeOfDay: setSbTimeOfDay, sbWeather: setSbWeather, sbLighting: setSbLighting,
-      sbDirection: setSbDirection, sbAspect: setSbAspect, sbRefLocked: setSbRefLocked,
+      sbDirection: setSbDirection, sbAspect: setSbAspect, sbRefLocked: setSbRefLocked, sbRefHandle: setSbRefHandle,
       sbFrames: (v) => setSbFrames(Array.isArray(v) && v.length ? v.map((f) => ({ ...newFrame(), ...f })) : [newFrame()]),
       cmOutput: (v) => setCmOutput(CHARMAKER_OUTPUTS.some((o) => o.id === v) ? v : "hero"),
       cmAge: setCmAge, cmGender: setCmGender, cmSkin: setCmSkin,
@@ -637,7 +640,7 @@ export default function CinemaPromptStudio() {
       cmHairLength: setCmHairLength, cmHairTexture: setCmHairTexture, cmBuild: setCmBuild,
       cmMarks: setCmMarks, cmIdentityText: setCmIdentityText, cmIdentityDirty: setCmIdentityDirty,
       cmOutfit: setCmOutfit, cmVibe: setCmVibe, cmSource: setCmSource,
-      cmBaseGender: setCmBaseGender, cmRefLocked: setCmRefLocked, cmDetail: setCmDetail, cmNeckline: setCmNeckline,
+      cmBaseGender: setCmBaseGender, cmRefLocked: setCmRefLocked, cmRefHandle: setCmRefHandle, cmDetail: setCmDetail, cmNeckline: setCmNeckline,
       blLocationId: setBlLocationId, cineBlockingId: setCineBlockingId, cineLocationId: setCineLocationId,
     };
     Object.entries(d).forEach(([k, v]) => { if (setters[k]) setters[k](v); });
@@ -1069,9 +1072,14 @@ export default function CinemaPromptStudio() {
                 description="On: you will attach the character's reference image in your AI tool. Identity is anchored to the image, not re-described. This replaces the old reference-photo mode."
               />
               {cineRefLocked ? (
-                <p className="text-xs mt-1 mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>
-                  Identity is anchored to the attached reference image — the identity inputs below are ignored while this is on.
-                </p>
+                <>
+                  <p className="text-xs mt-1 mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>
+                    Identity is anchored to the attached reference image — the identity inputs below are ignored while this is on.
+                  </p>
+                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel }}>Visual handle (optional)</div>
+                  <input value={cineRefHandle} onChange={(e) => setCineRefHandle(e.target.value)} placeholder="e.g. the woman with platinum-blonde hair" className="w-full rounded p-2.5 text-sm" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }} />
+                  <p className="text-xs mt-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>One short distinguishing descriptor — useful when more than one person is in frame.</p>
+                </>
               ) : (
                 <>
                   <div className="text-xs mb-2 mt-2" style={{ fontFamily: fBody, color: COLORS.steel }}>
@@ -1647,6 +1655,13 @@ export default function CinemaPromptStudio() {
                 label="Reference images locked"
                 description="On: the character lock sentence anchors to the attached reference image instead of re-describing the identity."
               />
+              {sbRefLocked && (
+                <div className="mt-2">
+                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel }}>Visual handle (optional)</div>
+                  <input value={sbRefHandle} onChange={(e) => setSbRefHandle(e.target.value)} placeholder="e.g. the woman with platinum-blonde hair" className="w-full rounded p-2.5 text-sm" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }} />
+                  <p className="text-xs mt-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>One short distinguishing descriptor — useful when more than one person is in frame.</p>
+                </div>
+              )}
               {sbSheetPrompt && (
                 <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${COLORS.panelBorder}` }}>
                   <button onClick={() => copyText(sbSheetPrompt, () => { setSbSheetCopied(true); setTimeout(() => setSbSheetCopied(false), 1500); })} className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs" style={{ fontFamily: fBody, backgroundColor: sbSheetCopied ? COLORS.amber : "transparent", color: sbSheetCopied ? COLORS.console : COLORS.amber, border: `1px solid ${COLORS.amber}`, fontWeight: 600 }}>
@@ -1861,9 +1876,14 @@ export default function CinemaPromptStudio() {
               />
 
               {cmRefLocked ? (
-                <p className="text-xs mt-1 mb-3" style={{ fontFamily: fBody, color: COLORS.steel }}>
-                  Identity is anchored to the attached reference image — the builder below is ignored while this is on.
-                </p>
+                <>
+                  <p className="text-xs mt-1 mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>
+                    Identity is anchored to the attached reference image — the builder below is ignored while this is on.
+                  </p>
+                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel }}>Visual handle (optional)</div>
+                  <input value={cmRefHandle} onChange={(e) => setCmRefHandle(e.target.value)} placeholder="e.g. the woman with platinum-blonde hair" className="w-full rounded p-2.5 text-sm mb-3" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }} />
+                  <p className="text-xs -mt-2 mb-3" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>One short distinguishing descriptor — useful when more than one person is in frame.</p>
+                </>
               ) : (
               <>
               {/* Source toggle */}
