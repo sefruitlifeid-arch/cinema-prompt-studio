@@ -3,7 +3,7 @@ import { COLORS, fDisplay, fBody, fMono } from "../constants/theme";
 import { placementPhrase } from "../utils/phrases";
 
 // Draggable placement canvas: X = left/right, Y = back(top)/front(bottom)
-export function PlacementCanvas({ px, py, dist, setPx, setPy, setDist, ratio }) {
+export function PlacementCanvas({ px, py, setPx, setPy, ratio }) {
   const ref = React.useRef(null);
   const dragging = React.useRef(false);
   const W = 260, H = ratio ? Math.round(260 / ratio) : 160;
@@ -16,7 +16,7 @@ export function PlacementCanvas({ px, py, dist, setPx, setPy, setDist, ratio }) 
     setPx(Math.max(0.05, Math.min(0.95, (p.clientX - rect.left) / rect.width)));
     setPy(Math.max(0.05, Math.min(0.95, (p.clientY - rect.top) / rect.height)));
   };
-  const dotR = 6 + dist * 10;
+  const dotR = 10;
   return (
     <div>
       <div ref={ref}
@@ -35,15 +35,8 @@ export function PlacementCanvas({ px, py, dist, setPx, setPy, setDist, ratio }) 
           <span style={{ fontFamily:fMono,fontSize:8,color:COLORS.console,fontWeight:700 }}>P</span>
         </div>
       </div>
-      <div className="mt-2">
-        <div className="flex items-baseline justify-between">
-          <span className="text-xs" style={{ fontFamily:fBody,color:COLORS.steel }}>Subject size / distance to camera</span>
-          <span style={{ fontFamily:fMono,color:COLORS.amber,fontSize:12 }}>{dist > 0.6 ? "close" : dist > 0.3 ? "mid" : "far"}</span>
-        </div>
-        <input type="range" min={0} max={1} step={0.05} value={dist} onChange={(e) => setDist(Number(e.target.value))} className="w-full"/>
-      </div>
       <div className="mt-1 rounded p-2" style={{ backgroundColor:COLORS.console,border:`1px solid ${COLORS.panelBorder}` }}>
-        <span className="text-xs" style={{ fontFamily:fBody,color:COLORS.paper }}>{placementPhrase(px,py,dist)}</span>
+        <span className="text-xs" style={{ fontFamily:fBody,color:COLORS.paper }}>{placementPhrase(px,py)}</span>
       </div>
     </div>
   );

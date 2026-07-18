@@ -127,7 +127,7 @@ export default function CinemaPromptStudio() {
   const [locName, setLocName] = useState("");
   const [locSavingOpen, setLocSavingOpen] = useState(false);
   // Storyboard state (mode id stays "assemble" for preset compatibility)
-  const newFrame = () => ({ id: Date.now().toString() + Math.random().toString(36).slice(2, 6), shotType: "chestup", angleRot: 0, action: "", expressionPhrase: "", px: 0.5, py: 0.5, dist: 0.5, blockingClause: "" });
+  const newFrame = () => ({ id: Date.now().toString() + Math.random().toString(36).slice(2, 6), shotType: "chestup", angleRot: 0, action: "", expressionPhrase: "", px: 0.5, py: 0.5, blockingClause: "" });
   const [sbCharacterId, setSbCharacterId] = useState("");
   const [sbProductId, setSbProductId] = useState("");
   const [sbLocationId, setSbLocationId] = useState("");
@@ -144,7 +144,6 @@ export default function CinemaPromptStudio() {
   const [charPlacement, setCharPlacement] = useState(false);
   const [charPx, setCharPx] = useState(0.5);
   const [charPy, setCharPy] = useState(0.5);
-  const [charDist, setCharDist] = useState(0.5);
   // Character Maker state
   const [cmOutput, setCmOutput] = useState("hero");
   const [cmAge, setCmAge] = useState("");
@@ -183,6 +182,7 @@ export default function CinemaPromptStudio() {
   const [blLoadedId, setBlLoadedId] = useState("");
   // Blocking injection (cinema)
   const [cineBlockingId, setCineBlockingId] = useState("");
+  const [cineLocationId, setCineLocationId] = useState("");
 
   useEffect(() => {
     setPresets(store.read(PRESET_KEY));
@@ -240,7 +240,8 @@ export default function CinemaPromptStudio() {
   );
 
   // Cinema blocking injection: recompile the clause live from stored geometry.
-  const cineLocEntry = locations.find((l) => l.text === location.trim());
+  // Tracked by library id so the user can edit the location text without losing the blocking link.
+  const cineLocEntry = locations.find((l) => l.id === cineLocationId);
   const cineBlockingClause = useMemo(() => {
     if (!cineBlockingId || !cineLocEntry) return "";
     const b = (cineLocEntry.blockings || []).find((x) => x.id === cineBlockingId);
@@ -266,7 +267,7 @@ export default function CinemaPromptStudio() {
       : "";
     const locationSentence = location.trim() ? `The scene is set in ${location.trim()}.` : "";
     const blockingSentence = locationSentence ? cineBlockingClause : "";
-    const placeSentence = charPlacement ? placementPhrase(charPx, charPy, charDist) : "";
+    const placeSentence = charPlacement ? placementPhrase(charPx, charPy) : "";
     // Focal length speaks lens character only — figure size comes exclusively from shot type.
     const perspective = focalLength >= 85 ? "compressed perspective, flattened depth planes" : focalLength <= 24 ? "wide-angle perspective with mild edge stretch" : "natural perspective";
     const cameraSentence = `Shot on a ${lens.name} at ${focalLength}mm (${perspective}) on a ${sensor} sensor, aperture f/${aperture} for ${lens.character}.`;
@@ -282,7 +283,7 @@ export default function CinemaPromptStudio() {
     return [opening, charSentence, actionSentence, outfitSentence, productSentence, locationSentence, blockingSentence, placeSentence, cameraSentence, lightingSentence, expressionSentence, realismSentence, brandClause, aspectSentence, closing, refProportion]
       .filter(Boolean)
       .join(" ");
-  }, [identitySource, character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, photoAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, charDist, cineRefLocked, cineOutfitRef, cineBlockingClause]);
+  }, [identitySource, character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, photoAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, cineRefLocked, cineOutfitRef, cineBlockingClause]);
 
   // ---------- Product compiler ----------
   const productPrompt = useMemo(() => {
@@ -306,6 +307,7 @@ export default function CinemaPromptStudio() {
     if (productOutput === "sheet") {
       return [
         `Create a product reference sheet as ONE single image: a clean 3x2 grid showing the exact same product — ${identity} — from six views: ${SHEET_ANGLES.map((a) => a.phrase).join("; ")}.`,
+        `The product has ${material.phrase}.`,
         "The product must be pixel-consistent across all six views: identical shape, proportions, colors, materials, label and logo, matching the attached reference photo exactly.",
         `Every view uses identical ${prodLight.phrase} on ${prodBg.phrase}, with the same scale and centered placement in each cell, thin neutral dividers between cells.`,
         prodContactShadow ? "Each view is grounded with the same soft contact shadow." : "",
@@ -428,7 +430,7 @@ export default function CinemaPromptStudio() {
         deltas,
         f.action.trim() ? `The character is ${f.action.trim().replace(/\.+$/, "")}.` : "",
         f.expressionPhrase.trim() ? `Their face shows ${f.expressionPhrase.trim().replace(/\.+$/, "")}.` : "",
-        placementPhrase(f.px, f.py, f.dist),
+        placementPhrase(f.px, f.py),
         f.blockingClause,
         sbContinuityClause,
         sbAspectClause,
@@ -449,6 +451,8 @@ export default function CinemaPromptStudio() {
     if (!sbSceneLocks || sbFrames.length < 2) return null;
     const n = sbFrames.length;
     const cols = n <= 4 ? 2 : n <= 6 ? 3 : 4;
+    const rows = Math.ceil(n / cols);
+    const partial = n % cols !== 0 ? ` The last row contains only ${n % cols} panel${n % cols > 1 ? "s" : ""}, the remaining space left as clean backdrop.` : "";
     const pos = (i) => `row ${Math.floor(i / cols) + 1}, column ${(i % cols) + 1}`;
     const lightObj = SB_LIGHTING.find((l) => l.id === sbLighting) || SB_LIGHTING[0];
     const panelLines = sbFrames.map((f, i) => {
@@ -456,7 +460,7 @@ export default function CinemaPromptStudio() {
       return `Panel ${i + 1} (${pos(i)}): ${shotObj.phrase}, ${anglePhrase(f.angleRot, 0)}${f.action.trim() ? ` — ${f.action.trim().replace(/\.+$/, "")}` : ""}.${f.expressionPhrase.trim() ? ` Expression: ${f.expressionPhrase.trim().replace(/\.+$/, "")}.` : ""}`;
     }).join("\n");
     return [
-      `A ${n}-panel storyboard previz sheet arranged as a ${cols}-column by 2-row grid in a single frame, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Every panel shows the same single character in the same location. ${sbSceneLocks.charLock} ${sbSceneLocks.locLock} ${sbSceneLocks.lighting}${sbDirection.trim() ? ` ${sbDirection.trim().replace(/\.+$/, "")}.` : ""}`,
+      `A ${n}-panel storyboard previz sheet arranged as a ${cols}-column by ${rows}-row grid in a single frame, separated by hairline gutters matching the surrounding image tones, no white lines, no visible borders.${partial} Every panel shows the same single character in the same location. ${sbSceneLocks.charLock} ${sbSceneLocks.locLock} ${sbSceneLocks.lighting}${sbDirection.trim() ? ` ${sbDirection.trim().replace(/\.+$/, "")}.` : ""}`,
       panelLines,
       `The backdrop of every panel is the location environment itself under the same scene lighting — identical character identity and location continuity locked across all panels.`,
       `${REALISM_CLOSE} ${ANTI_TEXT_CLAUSE}`,
@@ -493,7 +497,7 @@ export default function CinemaPromptStudio() {
 
     if (output === "hero") {
       return [
-        "A clean cinema-character-reference headshot, framed from forehead to upper chest with the face filling most of the frame.",
+        "A clean cinema-character-reference headshot, framed from the waist up — a medium shot with the head fully in frame and comfortable headroom, the face large and clearly readable.",
         identityBlock,
         `${pronoun} wears ${baseline}.`,
         "Body squared to camera, head level, neutral relaxed expression, eyes to camera, lips closed and relaxed, subtle controlled energy.",
@@ -506,7 +510,7 @@ export default function CinemaPromptStudio() {
       const rowcol = ["top-left", "top-center", "top-right", "middle-left", "middle-center", "middle-right", "bottom-left", "bottom-center", "bottom-right"];
       const panelLines = CHARMAKER_EXPRESSIONS_9.map((e, i) => `Panel ${i + 1} (${rowcol[i]}): ${e.phrase}.`).join("\n");
       return [
-        `A 9-panel character expression reference sheet arranged as a 3-column by 3-row grid in a single frame, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character from the same chest-up angle — ${identityBlock} ${pronoun} wears ${baseline}.`,
+        `A 9-panel character expression reference sheet on a single square canvas divided into equal-sized cells in a 3-column by 3-row grid, every cell identical in width and height, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character from the same chest-up angle — ${identityBlock} ${pronoun} wears ${baseline}.`,
         panelLines,
         `${lockedBackdropUniform("nine")} The face and identity must be absolutely consistent across all nine panels — same bone structure, same skin, same hair, same proportions in every cell. Only the expression changes.`,
         close,
@@ -517,15 +521,15 @@ export default function CinemaPromptStudio() {
       const wardrobe = outfitLine || baseline;
       const detailObj = CM_DETAIL_OPTIONS.find((d) => d.id === cmDetail) || CM_DETAIL_OPTIONS[0];
       const panels = [
-        "Panel 1 (top-left): Full body front — straight-on neutral stance, weight even, arms relaxed at the sides, full styling readable from head to footwear.",
+        "Panel 1 (top-left): Full body front — straight-on neutral stance, weight even, arms relaxed at the sides, full styling readable from head to footwear, the ENTIRE body visible from the top of the head to the soles of both feet, standing upright, with clear headroom and footroom inside the panel, nothing cropped by the panel edge.",
         "Panel 2 (top-center): Side profile close headshot, left side — tight crop from collarbone up, the character's left profile facing screen-right, hair fall, ear, jaw and chin geometry clearly readable.",
-        "Panel 3 (top-right): Full body back — straight back view, showing hair fall from behind, garment drape, and footwear from behind.",
+        "Panel 3 (top-right): Full body back — straight back view, showing hair fall from behind, garment drape, and footwear from behind, the ENTIRE body visible from the top of the head to the soles of both feet, standing upright, with clear headroom and footroom inside the panel, nothing cropped by the panel edge.",
         "Panel 4 (bottom-left): Side profile close headshot, right side — tight crop from collarbone up, the character's right profile facing screen-left, a mirror of Panel 2 from the opposite side.",
         "Panel 5 (bottom-center): Front face close headshot — tight crop from collarbone up, body squared to camera, face filling the frame, eyes to camera, skin texture and facial structure clearly readable.",
         `Panel 6 (bottom-right): Detail shot — ${detailObj.clause}.`,
       ].join("\n");
       return [
-        `A 6-panel character reference sheet arranged as a 3-column by 2-row grid in a single horizontal frame, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
+        `A 6-panel character reference sheet on a single wide 16:9 canvas divided into equal-sized cells in a 3-column by 2-row grid, every cell identical in width and height, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
         panels,
         `${lockedBackdropUniform("six")} Sharp focus across every panel. Identical character identity locked across all six panels — same face, same skin, same hair, same wardrobe, same accessories, same proportions in every cell.`,
         close,
@@ -548,7 +552,7 @@ export default function CinemaPromptStudio() {
       if (!cmOutfit.trim()) return null;
       const panels = CHARMAKER_OUTFIT_PANELS.map((p, i) => `Panel ${i + 1}: ${p}.`).join("\n");
       return [
-        `A 3-panel outfit reference sheet arranged as a single horizontal frame, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Every panel shows the same single character — ${identityBlock} — wearing ${outfitLine}.`,
+        `A 3-panel outfit reference sheet on a single wide 16:9 canvas divided into three equal-sized cells in a row, every cell identical in width and height, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Every panel shows the same single character — ${identityBlock} — wearing ${outfitLine}.`,
         panels,
         "The clothing, fabric, colors and details must be pixel-consistent across all panels. The face appears ONLY in the third anchor panel so downstream video tools take identity from that single face.",
         `${lockedBackdropUniform("three")}`,
@@ -578,7 +582,7 @@ export default function CinemaPromptStudio() {
     lensId, sensor, focalIdx, apertureIdx, genreId, keyId, qualityId, kelvin,
     identitySource, character, action, outfit, location, shotId, rotation, tilt, compId, cineRefLocked, cineOutfitRef,
     skinTexture, opticalImperfection, antiAI, eyeEngine, expressionPhrase,
-    charPlacement, charPx, charPy, charDist,
+    charPlacement, charPx, charPy,
     photoAspectId, injectProduct, productInteraction, injectedProductId, manualInstruction, creativeContext, contextTypeId, applyBrand,
     productOutput, productDesc, materialId, prodLightId, prodBgId, prodAngleId, prodRealReflection, prodContactShadow,
     locationOutput, locationDesc, timeOfDay, weatherId,
@@ -588,7 +592,7 @@ export default function CinemaPromptStudio() {
     cmOutput, cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild,
     cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmSource,
     cmBaseGender, cmRefLocked, cmDetail,
-    blLocationId, cineBlockingId,
+    blLocationId, cineBlockingId, cineLocationId,
   });
 
   const restore = (d) => {
@@ -600,7 +604,7 @@ export default function CinemaPromptStudio() {
       shotId: setShotId, rotation: setRotation, tilt: setTilt, compId: setCompId,
       cineRefLocked: setCineRefLocked, cineOutfitRef: setCineOutfitRef,
       photoAspectId: setPhotoAspectId,
-      charPlacement: setCharPlacement, charPx: setCharPx, charPy: setCharPy, charDist: setCharDist,
+      charPlacement: setCharPlacement, charPx: setCharPx, charPy: setCharPy,
       injectProduct: setInjectProduct, productInteraction: setProductInteraction, injectedProductId: setInjectedProductId,
       manualInstruction: setManualInstruction, creativeContext: setCreativeContext, contextTypeId: setContextTypeId, applyBrand: setApplyBrand,
       skinTexture: setSkinTexture, opticalImperfection: setOpticalImperfection, antiAI: setAntiAI,
@@ -623,7 +627,7 @@ export default function CinemaPromptStudio() {
       cmMarks: setCmMarks, cmIdentityText: setCmIdentityText, cmIdentityDirty: setCmIdentityDirty,
       cmOutfit: setCmOutfit, cmVibe: setCmVibe, cmSource: setCmSource,
       cmBaseGender: setCmBaseGender, cmRefLocked: setCmRefLocked, cmDetail: setCmDetail,
-      blLocationId: setBlLocationId, cineBlockingId: setCineBlockingId,
+      blLocationId: setBlLocationId, cineBlockingId: setCineBlockingId, cineLocationId: setCineLocationId,
     };
     Object.entries(d).forEach(([k, v]) => { if (setters[k]) setters[k](v); });
   };
@@ -1208,15 +1212,15 @@ export default function CinemaPromptStudio() {
               {locations.length > 0 && (
                 <div className="flex flex-wrap mb-2">
                   {locations.map((l) => (
-                    <Chip key={l.id} active={location === l.text} onClick={() => setLocation(l.text)} title={l.text}>
+                    <Chip key={l.id} active={cineLocationId === l.id} onClick={() => { setLocation(l.text); setCineBlockingId(""); setCineLocationId(l.id); }} title={l.text}>
                       📍 {l.name}
                     </Chip>
                   ))}
                 </div>
               )}
-              <textarea value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. a rain-slicked city street at dusk, neon reflected in puddles" rows={2} className="w-full rounded p-3 text-sm resize-none mb-2" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }} />
+              <textarea value={location} onChange={(e) => { setLocation(e.target.value); if (!e.target.value.trim()) { setCineLocationId(""); setCineBlockingId(""); } }} placeholder="e.g. a rain-slicked city street at dusk, neon reflected in puddles" rows={2} className="w-full rounded p-3 text-sm resize-none mb-2" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }} />
               <div className="flex flex-wrap">
-                {LOCATION_PRESETS.map((l) => (<Chip key={l.id} active={location === l.phrase} onClick={() => setLocation(l.phrase)}>{l.label}</Chip>))}
+                {LOCATION_PRESETS.map((l) => (<Chip key={l.id} active={location === l.phrase} onClick={() => { setLocation(l.phrase); setCineLocationId(""); setCineBlockingId(""); }}>{l.label}</Chip>))}
               </div>
               {cineLocEntry && (cineLocEntry.blockings || []).length > 0 && (
                 <div className="mt-3">
@@ -1227,6 +1231,11 @@ export default function CinemaPromptStudio() {
                       <Chip key={b.id} active={cineBlockingId === b.id} onClick={() => setCineBlockingId(b.id)}>{b.name}</Chip>
                     ))}
                   </div>
+                  {location.trim() !== cineLocEntry.text.trim() && (
+                    <p className="text-xs mt-1" style={{ fontFamily: fBody, color: COLORS.steel }}>
+                      Location text edited — blocking still uses the saved geography of "{cineLocEntry.name}".
+                    </p>
+                  )}
                 </div>
               )}
             </Panel>
@@ -1289,7 +1298,7 @@ export default function CinemaPromptStudio() {
                 <Toggle checked={charPlacement} onChange={setCharPlacement} label="Place character in scene" description="Drag point to set position — front/back depth and left/right — translates to spatial prose in the prompt"/>
                 {charPlacement && (
                   <div className="mt-2">
-                    <PlacementCanvas px={charPx} py={charPy} dist={charDist} setPx={setCharPx} setPy={setCharPy} setDist={setCharDist}/>
+                    <PlacementCanvas px={charPx} py={charPy} setPx={setCharPx} setPy={setCharPy}/>
                   </div>
                 )}
               </div>
@@ -1692,7 +1701,7 @@ export default function CinemaPromptStudio() {
                 </div>
                 <div className="mb-3">
                   <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Character placement</div>
-                  <PlacementCanvas px={f.px} py={f.py} dist={f.dist} setPx={(v) => sbPatchFrame(i, { px: v })} setPy={(v) => sbPatchFrame(i, { py: v })} setDist={(v) => sbPatchFrame(i, { dist: v })} ratio={{ "169": 16 / 9, "916": 9 / 16, "11": 1, "45": 4 / 5 }[sbAspect] || 16 / 9}/>
+                  <PlacementCanvas px={f.px} py={f.py} setPx={(v) => sbPatchFrame(i, { px: v })} setPy={(v) => sbPatchFrame(i, { py: v })} ratio={{ "169": 16 / 9, "916": 9 / 16, "11": 1, "45": 4 / 5 }[sbAspect] || 16 / 9}/>
                 </div>
                 {sbLocBlockings.length > 0 && (
                   <div className="mb-3">

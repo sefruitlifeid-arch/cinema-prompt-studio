@@ -351,7 +351,7 @@ export const CM_BASELINE_WARDROBE = {
 };
 
 export const CM_DETAIL_OPTIONS = [
-  { id: "hands", label: "Hands & nails", clause: "a tight close-up of the hands and nails, both hands relaxed and clearly visible, skin texture and nail detail readable, filling the panel cleanly" },
+  { id: "hands", label: "Hands & nails", clause: "a tight close-up of the hands and nails, both hands relaxed and clearly visible, skin texture and nail detail readable, filling the panel cleanly, hands shown against the plain mid-gray backdrop only, no props, no fabric, no surfaces" },
   { id: "jewelry", label: "Jewelry", clause: "a tight close-up of the character's key jewelry piece, metal surface detail readable, filling the panel cleanly" },
   { id: "piercing", label: "Piercing", clause: "a tight close-up of the character's piercing, exact position and metal readable, filling the panel cleanly" },
   { id: "marker", label: "Tattoo / marker", clause: "a tight close-up of the character's distinguishing mark or tattoo, placement and detail readable, filling the panel cleanly" },

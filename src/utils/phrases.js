@@ -54,7 +54,7 @@ export function realismForShot(shotId, { eyeSentence = "", skinTexture = false, 
 }
 
 // Translate placement canvas (px, py) to spatial prose
-export function placementPhrase(px, py, dist) {
+export function placementPhrase(px, py) {
   const h = px < 0.37 ? "the left third" : px > 0.63 ? "the right third" : "center frame";
   const depth = py < 0.37 ? "deep in the background" : py > 0.63 ? "in the foreground close to camera" : "in the mid-ground";
   return `The character is placed on ${h} of the frame, ${depth}.`;
