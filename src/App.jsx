@@ -519,15 +519,15 @@ export default function CinemaPromptStudio() {
       const wardrobe = outfitLine || baseline;
       const detailObj = CM_DETAIL_OPTIONS.find((d) => d.id === cmDetail) || CM_DETAIL_OPTIONS[0];
       const panels = [
-        "Panel 1 (top-left): Full body front — straight-on neutral stance, weight even, arms relaxed at the sides, full styling readable from head to footwear, the ENTIRE body visible from the top of the head to the soles of both feet, standing upright, with clear headroom and footroom inside the panel, nothing cropped by the panel edge.",
-        "Panel 2 (top-center): Side profile close headshot, left side — tight crop from collarbone up, the character's LEFT profile — nose pointing toward the RIGHT edge of the frame, hair fall, ear, jaw and chin geometry clearly readable.",
-        "Panel 3 (top-right): Full body back — straight back view, showing hair fall from behind, garment drape, and footwear from behind, the ENTIRE body visible from the top of the head to the soles of both feet, standing upright, with clear headroom and footroom inside the panel, nothing cropped by the panel edge.",
-        "Panel 4 (bottom-left): Side profile close headshot, right side — tight crop from collarbone up, the character's RIGHT profile — nose pointing toward the LEFT edge of the frame, the OPPOSITE direction from Panel 2; Panels 2 and 4 must never face the same direction.",
-        "Panel 5 (bottom-center): Front face close headshot — tight crop from collarbone up, body squared to camera, face filling the frame, eyes to camera, skin texture and facial structure clearly readable.",
-        `Panel 6 (bottom-right): Detail shot — ${detailObj.clause}.`,
+        "Panel 1 (left column, full height): Full body front — straight-on neutral stance, weight even, arms relaxed at the sides, the ENTIRE body visible from the top of the head to the soles of both feet, standing upright, with clear headroom and footroom, nothing cropped by the panel edge.",
+        "Panel 2 (second column, full height): Full body back — straight back view showing hair fall from behind, garment drape, and footwear, the ENTIRE body visible head to feet with clear headroom and footroom, nothing cropped.",
+        "Panel 3 (right block, top-left): Side profile close headshot — the character's LEFT profile, nose pointing toward the LEFT edge of the frame, hair fall, ear, jaw and chin geometry clearly readable.",
+        "Panel 4 (right block, top-right): Side profile close headshot — the character's RIGHT profile, nose pointing toward the RIGHT edge of the frame, the OPPOSITE direction from Panel 3; Panels 3 and 4 must never face the same direction.",
+        "Panel 5 (right block, bottom-left): Front face close headshot — tight crop from collarbone up, body squared to camera, face filling the frame, eyes to camera, skin texture and facial structure clearly readable.",
+        `Panel 6 (right block, bottom-right): Detail shot — ${detailObj.clause}.`,
       ].join("\n");
       return [
-        `A 6-panel character reference sheet on a single wide 16:9 canvas divided into equal-sized cells in a 3-column by 2-row grid, every cell identical in width and height, separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
+        `A 6-panel character reference sheet on a single wide 16:9 canvas with an asymmetric layout: the LEFT HALF is two tall full-height columns side by side (Panel 1 and Panel 2, each a full-height portrait cell); the RIGHT HALF is a 2x2 grid of four equal square cells (Panels 3-6). Panels separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
         panels,
         `${lockedBackdropUniform("six")} Sharp focus across every panel. Identical character identity locked across all six panels — same face, same skin, same hair, same wardrobe, same accessories, same proportions in every cell.`,
         close,
