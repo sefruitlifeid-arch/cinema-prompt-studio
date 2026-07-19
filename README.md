@@ -17,7 +17,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 npm run build
 ```
 
-Output goes to `dist/`. The build uses relative paths (`base: '/cinema-prompt-studio/'`) so it works hosted at any subpath, including GitHub Pages.
+Output goes to `dist/`. The build is pinned to the GitHub Pages subpath via `base: '/cinema-prompt-studio/'` in `vite.config.js`. Hosting it anywhere else requires changing that value.
 
 ## Preview production build
 
