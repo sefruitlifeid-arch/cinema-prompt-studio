@@ -70,7 +70,7 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 | Feature | Status | Notes |
 |---|---|---|
 | Character thumbnails | **V4.6, locked not built** | Canvas-downscale to ~96px, data URL on the character record. Needs a localStorage size guard. |
-| In-app Help modal | **V4.6, locked not built** | Single `<HelpModal />`, header `?` button, static JSX. Content source `cinema-prompt-studio-user-guide.md` is not in the repo. |
+| In-app Help modal | **V4.6, locked not built** | Single `<HelpModal />`, header `?` button, static JSX. Content source is `docs/USER_GUIDE.md`. |
 | Export / import libraries | **Not planned yet** | The cheap mitigation for the no-cloud-sync risk. |
 | Cloud sync | **Planned** | Backlog. All state is device-local; clearing browser data loses every library. |
 | Image generation | **Non-goal** | Deliberately out of scope. |

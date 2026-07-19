@@ -263,5 +263,10 @@ feature that renders static text. The modal changes almost nothing.
 
 Both ship as **one combined mega-prompt**.
 
-> Note: `cinema-prompt-studio-user-guide.md` is referenced as the Help content source but is
-> not in the repo. Whoever builds V4.6 needs it from the owner first.
+> Content source is `docs/USER_GUIDE.md`, now in the repo.
+>
+> **Watch the ordering.** The guide is written in *learning* order (Character Maker second,
+> because assets come first), while the tab bar renders Character Maker **last**. The guide's
+> section headings deliberately carry no tab numbers for this reason. If the Help modal adds
+> navigation, either follow the tab bar order or keep the explanatory note at the top — do not
+> silently renumber.

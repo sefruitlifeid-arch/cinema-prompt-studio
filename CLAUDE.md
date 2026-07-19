@@ -50,3 +50,4 @@ Read on demand, not every session:
 - `docs/FEATURE_STATUS.md` — per-feature status and known limitations
 - `docs/AI_INSTRUCTIONS.md` — build strategy, surgical replacement discipline, model tiering
 - `docs/TODO.md` — ranked backlog with complexity and dependencies
+- `docs/USER_GUIDE.md` — end-user guide; content source for the planned V4.6 Help modal

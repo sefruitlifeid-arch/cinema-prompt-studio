@@ -40,8 +40,8 @@ modal opened from a header `?` button rather than an eighth tab.
 **Complexity:** Medium. Ships as one combined mega-prompt with deterministic test blocks.
 Two specific risks: the localStorage size guard on thumbnails, and defensive reads for
 character records saved before thumbnails existed.
-**Dependencies:** Items 1 and 2 first. Also needs `cinema-prompt-studio-user-guide.md` from
-the owner — it is the Help content source and is **not in the repo**.
+**Dependencies:** Items 1 and 2 first. Help content source is `docs/USER_GUIDE.md`, already in
+the repo — render it as static JSX sections, and keep its no-tab-numbers convention.
 
 ### 5. Export / import libraries as JSON
 **Reason:** Every character, product, location, blocking, and preset lives only in this
