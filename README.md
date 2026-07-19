@@ -17,7 +17,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 npm run build
 ```
 
-Output goes to `dist/`. The build uses relative paths (`base: './'`) so it works hosted at any subpath, including GitHub Pages.
+Output goes to `dist/`. The build uses relative paths (`base: '/cinema-prompt-studio/'`) so it works hosted at any subpath, including GitHub Pages.
 
 ## Preview production build
 
