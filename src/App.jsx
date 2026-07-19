@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Copy, Check, ArrowLeft, ArrowRight, ArrowUp, CircleDot, Aperture, Save, X, Palette, Package, ChevronDown, ChevronUp } from "lucide-react";
+import { Copy, Check, ArrowLeft, ArrowRight, ArrowUp, CircleDot, Aperture, Save, X, Palette, Package, ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
 import { COLORS, fDisplay, fBody, fMono } from "./constants/theme";
 import {
   LENSES, SENSORS, GENRES, SHOT_TYPES, ACTION_CHIPS, LOCATION_PRESETS,
@@ -23,6 +23,10 @@ import { Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper } from "./compon
 import { PlacementCanvas, TextPlacement, AngleOrbit, BlockingCanvas } from "./components/canvases";
 import { CharChip, CharAvatar } from "./components/CharChip";
 import { makeThumb } from "./utils/thumb";
+import { HelpModal } from "./components/HelpModal";
+
+// Active tab → user-guide section id (unknown tab → null opens at top).
+const HELP_SECTION_BY_MODE = { cinema: "cinema", charmaker: "character", product: "product", location: "location", design: "design", assemble: "storyboard", blocking: "blocking" };
 
 // Flat-grade variant for multi-panel sheets ("six" / "three" / "nine" panels)
 const flatUniform = (n) => FLAT_GRADE_CLOSE
@@ -31,6 +35,7 @@ const flatUniform = (n) => FLAT_GRADE_CLOSE
 
 export default function CinemaPromptStudio() {
   const [mode, setMode] = useState("cinema");
+  const [helpOpen, setHelpOpen] = useState(false);
   // Brand Kit (global)
   const [brand, setBrand] = useState(EMPTY_BRAND);
   const [brandOpen, setBrandOpen] = useState(false);
@@ -877,6 +882,14 @@ export default function CinemaPromptStudio() {
               Director console for photoreal prompts — set the rig, copy the shot.
             </p>
           </div>
+          <button
+            onClick={() => setHelpOpen(true)}
+            title="User guide"
+            className="ml-auto flex items-center gap-1.5 flex-shrink-0 rounded px-3 py-2"
+            style={{ fontFamily: fBody, color: COLORS.amber, border: `1px solid ${COLORS.amberDim}` }}
+          >
+            <HelpCircle size={16} /> <span className="text-sm">Help</span>
+          </button>
         </div>
 
         {/* BRAND KIT — global */}
@@ -2197,6 +2210,7 @@ export default function CinemaPromptStudio() {
           </div>
         </div>
       </div>
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} section={HELP_SECTION_BY_MODE[mode] || null} />
     </div>
   );
 }
