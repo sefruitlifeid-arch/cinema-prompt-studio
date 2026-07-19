@@ -21,6 +21,8 @@ import { parseSubAreas, compileBlockingClause } from "./utils/blocking";
 import { PRESET_KEY, CHAR_KEY, PRODUCT_KEY, BRAND_KEY, LOCATION_KEY, memStore, store, copyText } from "./utils/storage";
 import { Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper } from "./components/primitives";
 import { PlacementCanvas, TextPlacement, AngleOrbit, BlockingCanvas } from "./components/canvases";
+import { CharChip, CharAvatar } from "./components/CharChip";
+import { makeThumb } from "./utils/thumb";
 
 // Flat-grade variant for multi-panel sheets ("six" / "three" / "nine" panels)
 const flatUniform = (n) => FLAT_GRADE_CLOSE
@@ -172,6 +174,8 @@ export default function CinemaPromptStudio() {
   const [cmNeckline, setCmNeckline] = useState("closed");
   const [cmSavingOpen, setCmSavingOpen] = useState(false);
   const [cmName, setCmName] = useState("");
+  const [cmThumb, setCmThumb] = useState(null);
+  const [cmThumbNotice, setCmThumbNotice] = useState("");
   const [cmSource, setCmSource] = useState("scratch");
   const [cmExOpen, setCmExOpen] = useState(false);
   const [cmExCopied, setCmExCopied] = useState(false);
@@ -764,11 +768,29 @@ export default function CinemaPromptStudio() {
   const saveCharacterFromCM = () => {
     const name = cmName.trim();
     if (!name || !cmIdentityText.trim()) return;
-    const next = [...characters, { id: Date.now().toString(), name, text: cmIdentityText.trim() }];
+    const record = { id: Date.now().toString(), name, text: cmIdentityText.trim() };
+    if (cmThumb) record.thumb = cmThumb;
+    const next = [...characters, record];
     setCharacters(next);
     store.write(CHAR_KEY, next);
     setCmName("");
+    setCmThumb(null);
+    setCmThumbNotice("");
     setCmSavingOpen(false);
+  };
+
+  const handleCmThumbFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    const t = await makeThumb(file);
+    if (!t) {
+      setCmThumbNotice("Image too large or unreadable — thumbnail skipped.");
+      setTimeout(() => setCmThumbNotice(""), 3500);
+      return;
+    }
+    setCmThumb(t);
+    setCmThumbNotice("");
   };
 
   // Thumbnail type auto-suggest: sets matching color / text style / layout (still overridable).
@@ -1124,9 +1146,9 @@ export default function CinemaPromptStudio() {
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {characters.map((c) => (
-                      <div key={c.id} className="flex items-center rounded" style={{ border: `1px solid ${COLORS.panelBorder}` }}>
-                        <button onClick={() => setCharacter(c.text)} className="px-3 py-1.5 text-sm" style={{ fontFamily: fBody, color: COLORS.paper }} title={c.text}>{c.name}</button>
-                        <button onClick={() => deleteCharacter(c.id)} className="px-2 py-1.5" title="Delete" style={{ color: COLORS.steel }}><X size={12} /></button>
+                      <div key={c.id} className="flex items-center gap-1">
+                        <CharChip character={c} selected={false} onClick={() => setCharacter(c.text)} />
+                        <button onClick={() => deleteCharacter(c.id)} className="px-1 py-1" title="Delete" style={{ color: COLORS.steel }}><X size={12} /></button>
                       </div>
                     ))}
                   </div>
@@ -1614,7 +1636,7 @@ export default function CinemaPromptStudio() {
               <div className="mb-4">
                 <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.steel }}>Character (from library) <span style={{ color: COLORS.amber }}>— required</span></div>
                 {characters.length === 0 ? <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>No saved characters — save one in Character Maker or Cinema mode.</p> : (
-                  <div className="flex flex-wrap">{characters.map((c) => <Chip key={c.id} active={sbCharacterId === c.id} onClick={() => setSbCharacterId(sbCharacterId === c.id ? "" : c.id)} title={c.text}>{c.name}</Chip>)}</div>
+                  <div className="flex flex-wrap gap-2">{characters.map((c) => <CharChip key={c.id} character={c} selected={sbCharacterId === c.id} onClick={() => setSbCharacterId(sbCharacterId === c.id ? "" : c.id)} />)}</div>
                 )}
               </div>
               <div className="mb-4">
@@ -2006,26 +2028,41 @@ export default function CinemaPromptStudio() {
               <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${COLORS.panelBorder}` }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs tracking-widest uppercase" style={{ fontFamily: fDisplay, color: COLORS.steel, letterSpacing: "0.1em" }}>Character library</span>
-                  {cmSavingOpen ? (
-                    <div className="flex items-center gap-2">
-                      <input value={cmName} onChange={(e) => setCmName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveCharacterFromCM(); }} placeholder="Name" autoFocus className="rounded px-2 py-1 text-xs" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}`, width: 110 }}/>
-                      <button onClick={saveCharacterFromCM} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, backgroundColor: COLORS.amber, color: COLORS.console, fontWeight: 600 }}>Save</button>
-                      <button onClick={() => { setCmSavingOpen(false); setCmName(""); }} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}` }}>✕</button>
+                  <div className="flex items-center gap-2">
+                    <div style={{ position: "relative", width: 40, height: 40, flexShrink: 0 }}>
+                      <CharAvatar character={{ name: cmName, thumb: cmThumb }} size={40} />
+                      {cmThumb && (
+                        <button onClick={() => setCmThumb(null)} title="Remove thumbnail" style={{ position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: "50%", backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}`, fontSize: 9, lineHeight: "14px", padding: 0 }}>✕</button>
+                      )}
                     </div>
-                  ) : (
-                    <button onClick={() => setCmSavingOpen(true)} disabled={!cmIdentityText.trim()} className="flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: cmIdentityText.trim() ? COLORS.amber : COLORS.steel, opacity: cmIdentityText.trim() ? 1 : 0.4, border: `1px solid ${COLORS.amberDim}` }}>
-                      <Save size={11}/> Save to library
-                    </button>
-                  )}
+                    <label className="px-2 py-1 rounded text-xs cursor-pointer" style={{ fontFamily: fBody, color: COLORS.amber, border: `1px solid ${COLORS.amberDim}` }}>
+                      {cmThumb ? "Replace" : "Add thumbnail"}
+                      <input type="file" accept="image/*" className="hidden" onChange={handleCmThumbFile} />
+                    </label>
+                    {cmSavingOpen ? (
+                      <div className="flex items-center gap-2">
+                        <input value={cmName} onChange={(e) => setCmName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveCharacterFromCM(); }} placeholder="Name" autoFocus className="rounded px-2 py-1 text-xs" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}`, width: 110 }}/>
+                        <button onClick={saveCharacterFromCM} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, backgroundColor: COLORS.amber, color: COLORS.console, fontWeight: 600 }}>Save</button>
+                        <button onClick={() => { setCmSavingOpen(false); setCmName(""); }} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}` }}>✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setCmSavingOpen(true)} disabled={!cmIdentityText.trim()} className="flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: cmIdentityText.trim() ? COLORS.amber : COLORS.steel, opacity: cmIdentityText.trim() ? 1 : 0.4, border: `1px solid ${COLORS.amberDim}` }}>
+                        <Save size={11}/> Save to library
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {cmThumbNotice && (
+                  <p className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.amber }}>{cmThumbNotice}</p>
+                )}
                 {characters.length === 0 ? (
                   <p className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.6 }}>Saved characters appear here and in Cinema mode and Storyboard.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {characters.map((c) => (
-                      <div key={c.id} className="flex items-center rounded" style={{ border: `1px solid ${COLORS.panelBorder}` }}>
-                        <button onClick={() => { setCmIdentityText(c.text); setCmIdentityDirty(cmSource === "scratch"); }} className="px-3 py-1.5 text-sm" style={{ fontFamily: fBody, color: COLORS.paper }} title={c.text}>{c.name}</button>
-                        <button onClick={() => deleteCharacter(c.id)} className="px-2 py-1.5" style={{ color: COLORS.steel }}><X size={12}/></button>
+                      <div key={c.id} className="flex items-center gap-1">
+                        <CharChip character={c} selected={false} onClick={() => { setCmIdentityText(c.text); setCmIdentityDirty(cmSource === "scratch"); setCmThumb(c.thumb || null); }} />
+                        <button onClick={() => deleteCharacter(c.id)} title="Delete" className="px-1 py-1" style={{ color: COLORS.steel }}><X size={12}/></button>
                       </div>
                     ))}
                   </div>
