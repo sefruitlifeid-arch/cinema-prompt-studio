@@ -1,3 +1,10 @@
+<!--
+Reconciled 2026-08-03 against the chat-side copy (cinema-prompt-studio-user-guide.md).
+This repo version is the more complete one and is kept as the source of truth: it adds the
+section-ordering note below and drops the "Tab N —" heading prefixes (deliberate, commit
+dbad0a1 — the tab bar order differs from the recommended learning order). The chat-side copy
+contained no content this file lacks. Verbatim source for the V4.6b Help modal.
+-->
 # Cinema Prompt Studio — User Guide
 
 Cinema Prompt Studio doesn't generate images. It builds **professional, copy-paste-ready prompts** for external AI image tools (Seedance, Nano Banana, Higgsfield, etc.). You make selections in the UI; the app compiles them into one carefully structured prompt; you copy it into your AI tool — together with any reference images the prompt expects.

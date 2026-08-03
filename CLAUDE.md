@@ -4,6 +4,19 @@ A React/Vite single-page app that compiles UI selections into copy-paste-ready *
 for external AI image generators. It never generates images — no backend, no API calls, no auth.
 Output is always text on the clipboard.
 
+---
+
+## Read first, every session
+
+1. `docs/CONTEXT.md` — what this project is, working rules, locked decisions
+2. `docs/PROGRESS.md` — version history and current backlog position
+3. `docs/TODO.md` — immediate next actions
+
+Core rule: discuss and lock all design decisions before any execution.
+Do not write code or produce a Claude Code prompt until the user says lock.
+
+---
+
 **Read `docs/HANDOFF.md` before starting any work.** It carries the current state, the open
 items, and the reasoning that does not exist in the code.
 

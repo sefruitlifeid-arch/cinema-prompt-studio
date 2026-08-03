@@ -1,9 +1,11 @@
 # FEATURE STATUS — Cinema Prompt Studio
 
-Verified against source on 2026-07-19. Version **V4.5**. Status reflects the code, not intent.
+Verified against source on 2026-07-19; V4.6 rows updated 2026-08-03. Version **V4.6**. Status
+reflects the code, not intent.
 
 "Complete" means the code path exists and compiles. It does **not** mean verified — see the
-two open items in `HANDOFF.md`.
+two open items in `HANDOFF.md`. The V4.5 flat grade in particular is shipped but still
+**visually unverified**, and Blocking has still never been run end-to-end.
 
 ---
 
@@ -13,7 +15,7 @@ two open items in `HANDOFF.md`.
 src/
 ├── main.jsx                  React root
 ├── index.css                 Tailwind v4 entry
-├── App.jsx                   2,165 lines — ALL state, ALL compilers, ALL mode UI
+├── App.jsx                   2,216 lines — ALL state, ALL compilers, ALL mode UI
 ├── constants/
 │   ├── theme.js              COLORS + three font stacks
 │   └── data.js               485 lines — every option list and every locked prompt constant
@@ -21,11 +23,14 @@ src/
 │   ├── storage.js            localStorage keys, store.read/write w/ memory fallback, copyText
 │   ├── phrases.js            anglePhrase, realismForShot, placementPhrase,
 │   │                         textPositionPhrase, refAnchor, polar, bladePoints
-│   └── blocking.js           parseSubAreas, nearestSubArea, distance/direction qualifiers,
-│                             compileBlockingClause
+│   ├── blocking.js           parseSubAreas, nearestSubArea, distance/direction qualifiers,
+│   │                         compileBlockingClause
+│   └── thumb.js              makeThumb — 96px center-crop cover JPEG data URL, size-guarded
 └── components/
     ├── primitives.jsx        Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper
-    └── canvases.jsx          PlacementCanvas, BlockingCanvas, TextPlacement, AngleOrbit
+    ├── canvases.jsx          PlacementCanvas, BlockingCanvas, TextPlacement, AngleOrbit
+    ├── CharChip.jsx          CharChip + CharAvatar — thumb-or-initials, one fallback in one place
+    └── HelpModal.jsx         Context-aware user-guide modal, static JSX, no deps
 ```
 
 Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers → a single
@@ -60,6 +65,8 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 | Creative context clause | Complete | Seven context types, prepended first. |
 | Manual instruction | Complete | Appended last. |
 | Multi-prompt output | Complete | Product "angle set" and multi-frame Storyboard render as separate copyable blocks. |
+| Character thumbnails | Complete (V4.6a) | Optional `thumb` data URL on the character record. `makeThumb` never throws; oversized/unreadable images fall back to no thumb with an inline notice. Rendered via `<CharChip>` in Character Maker, Cinema and Storyboard. Products and locations deliberately excluded. |
+| In-app Help modal | Complete (V4.6b) | Header `?` on all seven tabs; opens scrolled to the active tab's section. Static JSX transcription of `docs/USER_GUIDE.md`. Closes on backdrop / ✕ / Escape, locks body scroll. Zero coupling to app state. |
 | Clipboard copy | Complete | `navigator.clipboard` with `execCommand` fallback. |
 | Deploy | Complete | GitHub Actions → Pages on push to `main`. |
 
@@ -69,8 +76,7 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 
 | Feature | Status | Notes |
 |---|---|---|
-| Character thumbnails | **V4.6, locked not built** | Canvas-downscale to ~96px, data URL on the character record. Needs a localStorage size guard. |
-| In-app Help modal | **V4.6, locked not built** | Single `<HelpModal />`, header `?` button, static JSX. Content source is `docs/USER_GUIDE.md`. |
+| Body proportion control | **V4.7, in design** | Height + build chips → head-height ratio, always-on anti-bogel guard, angle-conditional Cinema anti-distortion clause. **Three decisions still open** — see `docs/TODO.md` item 4. |
 | Export / import libraries | **Not planned yet** | The cheap mitigation for the no-cloud-sync risk. |
 | Cloud sync | **Planned** | Backlog. All state is device-local; clearing browser data loses every library. |
 | Image generation | **Non-goal** | Deliberately out of scope. |

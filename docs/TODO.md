@@ -4,6 +4,16 @@ Ranked. Each item lists reason, complexity, and dependencies.
 
 ---
 
+## Recently shipped
+
+**V4.6 — character thumbnails + in-app Help modal.** Both commits landed and are on `main`:
+`eda306b` (V4.6a, thumbnails via `src/utils/thumb.js` + shared `src/components/CharChip.jsx`)
+and `99d1f75` (V4.6b, `src/components/HelpModal.jsx` opened from the header `?` button,
+context-aware to the active tab). Shipped exactly to the locked spec — see `docs/CONTEXT.md`
+Part 5 for the spec and the two implementation notes discovered during the build.
+
+---
+
 ## Immediate
 
 ### 1. Verify V4.5 flat grade results
@@ -22,26 +32,41 @@ hand-written input.
 **Complexity:** No code, unless it surfaces a parser bug.
 **Dependencies:** A saved location with a reference photo.
 
-### 3. Fix the README base-path line
-**Reason:** `README.md` says the build uses `base: './'`. `vite.config.js` actually uses
-`base: '/cinema-prompt-studio/'`. The same error appears in the progress doc, so it reads as
-confirmed fact — and anyone who "fixes" the config to match will break the Pages deploy.
-**Complexity:** Trivial — one line. Fix the progress doc in the same pass.
-**Dependencies:** None.
+### 3. Fix the README base-path line — **DONE**
+**Reason:** `README.md` and the progress doc both claimed `base: './'` while `vite.config.js`
+actually uses `base: '/cinema-prompt-studio/'`. Appearing twice made it read as confirmed fact,
+and anyone "fixing" the config to match would break the Pages deploy.
+**Status:** Resolved. `README.md` was corrected in `4679025`; the chat-side progress doc was
+corrected when it was folded into `docs/PROGRESS.md`. `CLAUDE.md` warning #2 stays as a guard.
 
 ---
 
 ## Short term
 
-### 4. V4.6 — character thumbnails + Help modal
-**Reason:** Next planned feature release. Decisions are locked (see `PRODUCT_DECISIONS.md` §7)
-— thumbnails via canvas-downscale to a data URL on the character record, Help as a single
-modal opened from a header `?` button rather than an eighth tab.
-**Complexity:** Medium. Ships as one combined mega-prompt with deterministic test blocks.
-Two specific risks: the localStorage size guard on thumbnails, and defensive reads for
-character records saved before thumbnails existed.
-**Dependencies:** Items 1 and 2 first. Help content source is `docs/USER_GUIDE.md`, already in
-the repo — render it as static JSX sections, and keep its no-tab-numbers convention.
+### 4. V4.7 — body proportion control + anti-distortion
+**Reason:** Proportions go wrong — sometimes "bogel" (chibi/short), sometimes head-to-body ratio
+off. It surfaces specifically with **extracted** characters in **Cinema at unusual camera
+angles**, for two stacked reasons: the Examine prompt captures only facial identity, so an
+extracted character enters Cinema with a detailed face and an empty body and the model invents
+proportions; and non-eye-level angles then bake that perspective distortion into the anatomy
+itself. The "Character reference attached" toggle does *not* fix it — the identity plate is a
+medium shot, so only the face is anchored. Full design in `docs/CONTEXT.md` Part 5 item 4 and
+`docs/PROGRESS.md` §6b.
+**Complexity:** Medium-to-high, and it is **not** a ride-along on any other change: it touches
+the Examine prompt, the character record shape, and the Cinema compiler. Three parts — height +
+build chips compiled to a head-height ratio; an always-on anti-bogel guard constant on full-body
+Character Maker output; an angle-conditional Cinema anti-distortion clause. Plus a
+`proportionClause` field persisted on the character record and a "Set proportions" button to
+patch already-saved entries.
+
+**Three decisions still open — lock these before any execution:**
+- **A:** chips only, or chips + optional manual cm input?
+- **B:** anti-bogel guard always-on (recommended — matches the locked-formula pattern) or
+  toggleable?
+- **C:** confirm V4.7 is its own version rather than riding along with another release.
+  Tentatively yes.
+
+**Dependencies:** Items 1 and 2 first. Do not start implementation until A, B and C are locked.
 
 ### 5. Export / import libraries as JSON
 **Reason:** Every character, product, location, blocking, and preset lives only in this
