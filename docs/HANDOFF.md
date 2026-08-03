@@ -76,17 +76,12 @@ compiled clause. The tolerant parser in particular has not met real-world AI rep
 
 ## Blocking issues
 
-Nothing prevents the app from running. Three real defects:
+Nothing prevents the app from running. Two real defects:
 
-1. **Two documents state the wrong Vite base.** Both `README.md` and the progress doc say
-   `base: './'`. The actual `vite.config.js` uses `base: '/cinema-prompt-studio/'`, which is
-   correct for a GitHub Pages project site. **The docs are wrong, the config is right.**
-   Because the error appears in two places it looks authoritative — do not "fix" the config
-   to match it, or the deploy breaks.
-2. **Mode id/label mismatch.** The Storyboard tab has internal id `assemble` (a leftover from
+1. **Mode id/label mismatch.** The Storyboard tab has internal id `assemble` (a leftover from
    the old Scene Assembler). Presets saved from that tab store `mode: "assemble"`. Renaming
    the id without a migration silently orphans every saved Storyboard preset.
-3. **Blocking geometry is not in presets.** `blCharacters`, `blCamera`, `blSubjectIdx` are
+2. **Blocking geometry is not in presets.** `blCharacters`, `blCamera`, `blSubjectIdx` are
    deliberately excluded from the preset snapshot — blockings persist on the *location library
    entry* as `location.blockings[]`. Only `blLocationId` is in the snapshot. Intentional, but
    it surprises people.

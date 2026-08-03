@@ -41,8 +41,9 @@ Escalate after two failed attempts rather than retrying the same approach.
    degrades output invisibly — the code still runs, the images just get worse.
 
 2. **`vite.config.js` uses `base: '/cinema-prompt-studio/'` and that is correct.**
-   `README.md` and the progress doc both claim `base: './'`. Both are wrong. Do not change the
-   config to match them; it breaks the GitHub Pages deploy.
+   Do not change it to `base: './'` — that breaks the GitHub Pages deploy. `README.md` and
+   the chat-side progress doc both used to claim `'./'`; both are now corrected (`4679025`,
+   and `docs/PROGRESS.md` on consolidation). This warning stays as a guard.
 
 3. **The Storyboard tab's internal mode id is `assemble`** — a leftover from the old Scene
    Assembler. Saved presets store `mode: "assemble"`. Renaming it without a migration silently

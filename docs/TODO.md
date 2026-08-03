@@ -33,7 +33,7 @@ hand-written input.
 **Dependencies:** A saved location with a reference photo.
 
 ### 3. Fix the README base-path line — **DONE**
-**Reason:** `README.md` and the progress doc both claimed `base: './'` while `vite.config.js`
+**Reason:** `README.md` and the chat-side progress doc both claimed `base: './'` while `vite.config.js`
 actually uses `base: '/cinema-prompt-studio/'`. Appearing twice made it read as confirmed fact,
 and anyone "fixing" the config to match would break the Pages deploy.
 **Status:** Resolved. `README.md` was corrected in `4679025`; the chat-side progress doc was
