@@ -4,8 +4,9 @@ Verified against source on 2026-07-19; V4.6 rows updated 2026-08-03. Version **V
 reflects the code, not intent.
 
 "Complete" means the code path exists and compiles. It does **not** mean verified — see the
-two open items in `HANDOFF.md`. The V4.5 flat grade in particular is shipped but still
-**visually unverified**, and Blocking has still never been run end-to-end.
+open items in `HANDOFF.md`. The V4.5 flat grade was **visually verified on 4 Aug 2026 for the
+identity plate and the 6-panel character sheet** (both PASS); its outfit sheet and expression
+sheet are still unverified. Blocking has still never been run end-to-end.
 
 ---
 
@@ -48,7 +49,7 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 | Design / Thumbnail | `design` | **Complete** | Six thumbnail types with auto-suggest, drag text placement for two blocks, render styles, color treatments. |
 | Storyboard | `assemble` | **Complete** | Scene locks + up to 8 frames, per-frame standalone prompts, plus a combined sheet prompt. |
 | Blocking | `blocking` | **Complete, untested** | Extract → parse → drag canvas → compile → save → inject. Outputs a raw clause, not a full prompt. Never run end-to-end against a real AI reply. |
-| Character Maker | `charmaker` | **Complete, V4.5 unverified** | Five outputs: hero identity plate, 6-panel sheet, full body + outfit, 3-panel outfit sheet (two neckline variants), 9-panel expression sheet. The V4.5 flat grade has not been visually checked. |
+| Character Maker | `charmaker` | **Complete, V4.5 partly verified** | Five outputs: hero identity plate, 6-panel sheet, full body + outfit, 3-panel outfit sheet (two neckline variants), 9-panel expression sheet. V4.5 flat grade verified 4 Aug 2026 on the identity plate and the 6-panel sheet — both PASS, including skin tone across all six panels. Outfit sheet and expression sheet not yet visually checked. |
 
 ---
 

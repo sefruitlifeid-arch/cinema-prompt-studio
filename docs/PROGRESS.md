@@ -1,7 +1,8 @@
 # Cinema Prompt Studio — Progress Documentation
 
 **Originally written:** 21 July 2026 (chat-side) · **Consolidated into the repo:** 3 August 2026
-**Current version:** V4.6 shipped. V4.5 still pending visual verification. V4.7 in design.
+**Current version:** V4.6 shipped. V4.5 flat grade verified 4 Aug 2026 (identity plate +
+character sheet; outfit and expression sheets still unchecked). V4.7 in design.
 **Live:** https://sefruitlifeid-arch.github.io/cinema-prompt-studio/
 **Repo:** `sefruitlifeid-arch/cinema-prompt-studio`
 
@@ -146,7 +147,17 @@ auto-sync. Also translated all Indonesian expression labels to English across sh
 - Mode 2A outfit sheet with ghost-mannequin and clean-neck-cut neckline variants.
 - Visual handle inputs on all three reference toggles.
 
-**Status: awaiting visual verification.** See §5.
+**Status: verified 4 Aug 2026** for the identity plate and the 6-panel character sheet, tested
+through Nano Banana Pro. See §5.
+
+- **Identity plate — PASS.** No directional shadow under nose or chin, no readable key
+  direction, no cheek hotspot, flat even mid-gray backdrop.
+- **Character sheet — PASS on flat grade and skin tone.** All six panels lit uniformly; no
+  profile headshot picked up a side key (the known common failure). Skin tone reads as one
+  person across front body, back body, both profiles, face close-up, and the hand detail panel.
+  The V4.5 skin consistency clause works.
+
+**Still outstanding:** outfit sheet (Mode 2A, both neckline variants) and expression sheet.
 
 ### V4.6 — Character thumbnails + in-app Help modal *(SHIPPED)*
 
@@ -165,21 +176,28 @@ Two independent commits, exactly as specified in the locked spec.
 
 ---
 
-## 5. Open item — V4.5 verification checklist
+## 5. V4.5 verification checklist — partly done (4 Aug 2026)
 
 Visual check, not a code change. Run `npm run preview` and generate:
 
 1. **Identity plate** — near-absent nose/chin shadow, no discernible key direction, no cheek
    hotspot. If you can tell where the light is, the flat grade did not take.
+   **PASS, 4 Aug 2026.**
 2. **Character sheet (6 panels)** — all six lit identically. Common failure: profile headshots
-   pick up a side key while body columns stay flat.
+   pick up a side key while body columns stay flat. **PASS, 4 Aug 2026** — no profile headshot
+   picked up a side key.
 3. **Skin tone across panels** — face close-up vs. back body vs. profiles must read as one
    person. This is the specific target of the new clause and the real test.
+   **PASS, 4 Aug 2026** — reads as one person across all six panels.
 4. **Outfit sheet (2A)** — both neckline variants flat; face anchor panel not brighter than body
-   panels.
+   panels. **Not yet tested.**
 5. **Expression sheet** — flat across all nine cells, no cell-to-cell exposure drift.
+   **Not yet tested.**
 
-Priority: identity plate + character sheet first; they cover most of the surface.
+Priority: identity plate + character sheet first; they cover most of the surface. Both are now
+done and both passed, which clears the base the Character Maker work sits on. Items 4 and 5
+remain outstanding. Three minor non-blocking findings from this session are recorded as V4.8
+candidates in `TODO.md` — none of them is a flat-grade failure.
 
 ---
 
@@ -187,8 +205,8 @@ Priority: identity plate + character sheet first; they cover most of the surface
 
 | Priority | Item | Status |
 |---|---|---|
-| 1 | Verify V4.5 flat grade results | In progress |
-| 2 | Test Blocking mode end-to-end | Pending |
+| 1 | Verify V4.5 flat grade results | Done for identity plate + character sheet (4 Aug 2026); outfit + expression sheets pending |
+| 2 | Test Blocking mode end-to-end | **Pending — current top item** |
 | 3 | **V4.6** — character thumbnails + in-app Help modal | **Shipped** (`eda306b`, `99d1f75`) |
 | 4 | **V4.7** — body proportion control + anti-distortion | In design, decisions pending |
 | 5 | Undo / redo | Deprioritized |

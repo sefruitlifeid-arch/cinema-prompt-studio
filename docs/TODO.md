@@ -16,15 +16,21 @@ Part 5 for the spec and the two implementation notes discovered during the build
 
 ## Immediate
 
-### 1. Verify V4.5 flat grade results
+### 1. Verify V4.5 flat grade results — **DONE for identity plate + character sheet**
 **Reason:** V4.5 is deployed but its central change — the flat shadowless grade and the
-skin-consistency clause — has never been checked against real generated output. Until it is,
-every downstream Character Maker change is built on an unverified base.
-**Complexity:** No code. `npm run preview`, generate five outputs, judge them. Full checklist
-in `HANDOFF.md`.
-**Dependencies:** None. **Do this before anything else.**
+skin-consistency clause — had never been checked against real generated output. Until it was,
+every downstream Character Maker change was built on an unverified base.
+**Status:** Verified 4 Aug 2026 through Nano Banana Pro. Identity plate **PASS** — no
+directional shadow under nose or chin, no readable key direction, no cheek hotspot, flat even
+mid-gray backdrop. 6-panel character sheet **PASS on both flat grade and skin tone** — all six
+panels lit uniformly, no profile headshot picked up a side key, and skin tone reads as one
+person across front body, back body, both profiles, face close-up, and the hand detail panel.
+The V4.5 skin consistency clause works.
+**Still outstanding:** outfit sheet (Mode 2A, both neckline variants) and expression sheet.
+Three minor non-blocking findings from the same session are recorded under *V4.8 candidates*
+below — none is a flat-grade failure.
 
-### 2. Test Blocking mode end-to-end
+### 2. Test Blocking mode end-to-end — **current top item**
 **Reason:** The whole path exists in code but has never been run through with a real location
 photo and a real AI reply. `parseSubAreas()` is deliberately tolerant (bullets, `1.` / `1)`
 prefixes, parenthesised coordinates) but that tolerance has only ever been tested against
@@ -122,6 +128,27 @@ exactly where silent breakage would hurt. `parseSubAreas` in particular has a la
 input surface.
 **Complexity:** Low for those four; high for anything touching `App.jsx` while it is a monolith.
 **Dependencies:** Adding Vitest is a new dev dependency — needs approval.
+
+---
+
+## V4.8 candidates (minor, unscheduled)
+
+Observations from the 4 Aug 2026 V4.5 verification session. **None of these is a flat-grade
+defect** — the flat grade and the skin consistency clause both passed. Deliberately unnumbered
+so they do not disturb the ranked list above. All three are **UNSCHEDULED** and assigned to no
+version.
+
+- **Backdrop not perfectly uniform across panel types.** In the 6-panel sheet the two full-body
+  columns show a faint floor gradient at the bottom, while the headshot grid is perfectly flat.
+  Low priority — only matters if plates must be truly neutral. **UNSCHEDULED.**
+- **Right profile headshot panel is cropped tight against the frame edge.** A panel framing
+  issue, not lighting. **UNSCHEDULED.**
+- **Proportions were correct in this sheet — evidence only, no action needed.** Normal
+  head-to-body ratio, no shortened legs. This was a scratch-built character at neutral angles,
+  which supports the V4.7 diagnosis that the proportion bug is specific to **extracted**
+  characters at unusual camera angles rather than a general Character Maker defect. Recorded as
+  supporting evidence; the three V4.7 decisions (A, B, C in item 4) all remain open.
+  **UNSCHEDULED.**
 
 ---
 
