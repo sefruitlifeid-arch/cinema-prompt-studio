@@ -43,8 +43,9 @@ collaborator.
 
 > The original transfer doc listed `base: './'` and a local path of
 > `~/Documents/projects/cinema-prompt-studio`. The base value is simply wrong — do not change
-> `vite.config.js` to match it, it breaks the deploy. The `projects/` path is a **second, stale
-> clone** of the same remote; the working clone is the one above.
+> `vite.config.js` to match it, it breaks the deploy. The `projects/` path was a second, stale
+> clone of the same remote; **it no longer exists** — `~/Documents/cinema-prompt-studio` is now
+> the only clone on this machine.
 
 ### localStorage keys (in-memory fallback for sandboxed iframes)
 
