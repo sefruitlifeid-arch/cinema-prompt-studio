@@ -296,7 +296,6 @@ precisely why the bug only appears for extracted characters at unusual angles.
 **Three decisions still open — lock these before any execution:**
 
 - **A:** chips only, or chips + optional manual cm input?
-- **B:** anti-bogel guard always-on (recommended, consistent with the locked-formula pattern) or
-  toggleable?
-- **C:** confirm V4.7 is its own version — it touches the Examine prompt, the character record,
-  and the Cinema compiler, so it is too large to ride along with V4.6. Tentatively yes.
+- **B:** anti-bogel guard always-on, or toggleable?
+- **C:** is V4.7 its own version, or does it ride on another release? Scope to weigh: it touches
+  the Examine prompt, the character record, and the Cinema compiler.

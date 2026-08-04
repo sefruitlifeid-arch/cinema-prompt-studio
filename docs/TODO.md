@@ -52,19 +52,18 @@ proportions; and non-eye-level angles then bake that perspective distortion into
 itself. The "Character reference attached" toggle does *not* fix it — the identity plate is a
 medium shot, so only the face is anchored. Full design in `docs/CONTEXT.md` Part 5 item 4 and
 `docs/PROGRESS.md` §6b.
-**Complexity:** Medium-to-high, and it is **not** a ride-along on any other change: it touches
-the Examine prompt, the character record shape, and the Cinema compiler. Three parts — height +
-build chips compiled to a head-height ratio; an always-on anti-bogel guard constant on full-body
-Character Maker output; an angle-conditional Cinema anti-distortion clause. Plus a
+**Complexity:** Medium-to-high. Scope spans the Examine prompt, the character record shape, and
+the Cinema compiler — weigh that against decision C. Three parts — height +
+build chips compiled to a head-height ratio; an anti-bogel guard constant on full-body
+Character Maker output (always-on vs toggleable is decision B); an angle-conditional Cinema
+anti-distortion clause. Plus a
 `proportionClause` field persisted on the character record and a "Set proportions" button to
 patch already-saved entries.
 
 **Three decisions still open — lock these before any execution:**
 - **A:** chips only, or chips + optional manual cm input?
-- **B:** anti-bogel guard always-on (recommended — matches the locked-formula pattern) or
-  toggleable?
-- **C:** confirm V4.7 is its own version rather than riding along with another release.
-  Tentatively yes.
+- **B:** anti-bogel guard always-on, or toggleable?
+- **C:** is V4.7 its own version, or does it ride on another release?
 
 **Dependencies:** Items 1 and 2 first. Do not start implementation until A, B and C are locked.
 
