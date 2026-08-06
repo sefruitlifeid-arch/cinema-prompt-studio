@@ -77,7 +77,7 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 
 | Feature | Status | Notes |
 |---|---|---|
-| Body proportion control | **V4.7, in design** | Height + build chips → head-height ratio, an anti-bogel guard clause, angle-conditional Cinema anti-distortion clause. **Three decisions still open** — see `docs/TODO.md` item 4. |
+| Body proportion control | **V4.7, next release** | Height chips + optional auto-syncing cm field, plus build chips → head-height ratio; a toggleable anti-bogel guard (default ON); angle-conditional Cinema anti-distortion clause. **Decisions locked 6 Aug 2026** — see `docs/TODO.md` item 4. |
 | Export / import libraries | **Not planned yet** | The cheap mitigation for the no-cloud-sync risk. |
 | Cloud sync | **Planned** | Backlog. All state is device-local; clearing browser data loses every library. |
 | Image generation | **Non-goal** | Deliberately out of scope. |

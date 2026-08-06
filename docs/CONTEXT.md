@@ -181,7 +181,7 @@ verification.**
 | 1 | Verify V4.5 flat grade results | **In progress — user-side visual check** |
 | 2 | Test Blocking end-to-end with a real location image | **Pending** |
 | 3 | **V4.6** — character thumbnails + Help modal | **Shipped** (`eda306b`, `99d1f75`) |
-| 4 | **V4.7** — body proportion + anti-distortion | **In design, 3 decisions pending** |
+| 4 | **V4.7** — body proportion + anti-distortion | **Decisions locked 6 Aug 2026; ready to build** |
 | 5 | In-app Help page as collapsible panel | Backlog (separate from the shipped V4.6 modal) |
 | 6 | Undo / redo | Deprioritized — presets cover most of the need |
 | 7 | Cloud sync | Backlog — needs backend + auth, separate project |
@@ -247,7 +247,7 @@ Delivered as two independent commits:
 `flex: 1; minHeight: 0` to fill the panel, and the context-aware scroll must be deferred behind
 `requestAnimationFrame` so it reads a committed layout.
 
-### Item 4 — V4.7 design (PENDING DECISIONS)
+### Item 4 — V4.7 design (DECISIONS LOCKED)
 
 **Problem, as diagnosed:** proportions go wrong — sometimes "bogel" (chibi/short), sometimes
 head-to-body ratio off. It surfaces specifically with **extracted characters** (not built from
@@ -271,13 +271,15 @@ precisely why the bug only appears for extracted characters at unusual angles.
 
 **Proposed solution — three parts plus a library patch:**
 
-1. **Proportion inputs.** Height chips (petite / average / tall / very tall) compiled to phrasing
-   like "tall stature, approx 180cm" — cm as reinforcement only, since models lack in-frame scale
-   reference. Build chips (slender / athletic / average / stocky / curvy) controlling mass
-   separately. The compiler derives a head-height ratio from height+build, e.g. *"adult
+1. **Proportion inputs.** Height chips (petite / average / tall / very tall) plus an optional
+   manual cm field (decision A), compiled to phrasing like "tall stature, approx 180cm" — cm as
+   reinforcement only, since models lack in-frame scale reference. Entering a cm value auto-syncs
+   the chip to the matching bracket (decision A2), so the two can never contradict. Build chips
+   (slender / athletic / average / stocky / curvy) controlling mass separately. The compiler derives a head-height ratio from height+build, e.g. *"adult
    proportions of approximately 7.5 head-heights, tall slender build, long legs, natural
    anatomical proportions."*
-2. **Anti-bogel guard clause** — locked constant on all full-body Character Maker output:
+2. **Anti-bogel guard clause** — a toggle, default ON (decision B), on all full-body Character
+   Maker output:
    *"correct adult head-to-body ratio, no chibi, no shortened limbs, no oversized head,
    consistent proportions across all panels."* The cross-panel phrasing mirrors the V4.5
    skin-tone clause.
@@ -295,9 +297,23 @@ precisely why the bug only appears for extracted characters at unusual angles.
 - Add a "Set proportions" button on existing library entries so already-saved extracted
   characters can be fixed manually without re-extracting.
 
-**Three decisions still open — lock these before any execution:**
+**Decisions — LOCKED 6 Aug 2026.** Settled; do not relitigate.
 
-- **A:** chips only, or chips + optional manual cm input?
-- **B:** anti-bogel guard always-on, or toggleable?
-- **C:** is V4.7 its own version, or does it ride on another release? Scope to weigh: it touches
-  the Examine prompt, the character record, and the Cinema compiler.
+- **A — LOCKED: chips + optional manual cm input.** Height chips (petite / average / tall /
+  very tall) plus an optional cm field.
+- **A2 — LOCKED: auto-sync.** Entering a cm value automatically moves the chip to the matching
+  bracket, so chip and cm can never contradict. Same pattern as the V4.4 gender-fork auto-sync.
+  The **chip remains the source of the head-height ratio**; cm is carried into the prompt as
+  reinforcement.
+- **B — LOCKED: toggleable, default ON.** The anti-bogel guard is a toggle, not a permanent
+  constant. This departs from the locked-formula pattern deliberately, so Creative Context modes
+  like cartoon and fantasy can use non-realistic proportions. Default ON so the safe behaviour is
+  the baseline.
+- **C — LOCKED: V4.7 is the next release.** No other release is in flight after V4.6 shipped, so
+  V4.7 becomes the next version, and any other work that comes up rides along with it.
+
+**Why B departs from the locked-formula pattern.** Height data (chips/cm) tells the model *how
+tall* the character is; the anti-bogel guard tells it *not to break* the head-to-body ratio.
+Those are independent — a model can render 180cm at 5.5 head-heights, which is still bogel, just
+tall. The guard also carries the "consistent proportions across all panels" clause, which nothing
+else covers. So it cannot be folded into the height phrasing; it survives as its own toggle.

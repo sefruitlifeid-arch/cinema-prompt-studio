@@ -2,7 +2,8 @@
 
 **Originally written:** 21 July 2026 (chat-side) · **Consolidated into the repo:** 3 August 2026
 **Current version:** V4.6 shipped. V4.5 flat grade verified 4 Aug 2026 (identity plate +
-character sheet; outfit and expression sheets still unchecked). V4.7 in design.
+character sheet; outfit and expression sheets still unchecked). V4.7 is the next release — its
+decisions were locked 6 Aug 2026; see §6b.
 **Live:** https://sefruitlifeid-arch.github.io/cinema-prompt-studio/
 **Repo:** `sefruitlifeid-arch/cinema-prompt-studio`
 
@@ -209,7 +210,7 @@ candidates in `TODO.md` — none of them is a flat-grade failure.
 | 1 | Verify V4.5 flat grade results | Done for identity plate + character sheet (4 Aug 2026); outfit + expression sheets pending |
 | 2 | Test Blocking mode end-to-end | **Pending — current top item** |
 | 3 | **V4.6** — character thumbnails + in-app Help modal | **Shipped** (`eda306b`, `99d1f75`) |
-| 4 | **V4.7** — body proportion control + anti-distortion | In design, decisions pending |
+| 4 | **V4.7** — body proportion control + anti-distortion | Decisions locked 6 Aug 2026; ready to build |
 | 5 | Undo / redo | Deprioritized |
 | 6 | Cloud sync | Backlog |
 
@@ -218,7 +219,7 @@ dependencies, plus repo-only items (export/import libraries as JSON, splitting `
 
 ---
 
-## 6b. V4.7 — Body proportion control + anti-distortion (IN DESIGN)
+## 6b. V4.7 — Body proportion control + anti-distortion (DECISIONS LOCKED)
 
 ### Problem
 Proportions go wrong — sometimes "bogel" (chibi/short), sometimes head-to-body ratio off. Two
@@ -240,14 +241,16 @@ surfaced with extracted characters at unusual angles in Cinema.
 
 ### Proposed solution (three parts + library patch)
 1. **Proportion inputs (new):**
-   - Height chips: petite / average / tall / very tall → compiled to phrasing like "tall stature,
-     approx 180cm" (cm as reinforcement, not the anchor — models lack in-frame scale reference).
+   - Height chips: petite / average / tall / very tall, plus an optional manual cm field
+     (decision A) → compiled to phrasing like "tall stature, approx 180cm" (cm as reinforcement,
+     not the anchor — models lack in-frame scale reference). Entering cm auto-syncs the chip to
+     the matching bracket (decision A2); the chip stays the source of the head-height ratio.
    - Build chips: slender / athletic / average / stocky / curvy (mass, separate from height).
    - Compiler derives a head-height ratio from height+build, e.g. *"adult proportions of
      approximately 7.5 head-heights, tall slender build, long legs, natural anatomical
      proportions."*
-2. **Anti-bogel guard clause (locked constant; always-on vs toggleable is decision B):**
-   permanent negative on all full-body Character Maker output — *"correct adult head-to-body ratio, no chibi, no shortened limbs, no
+2. **Anti-bogel guard clause (toggle, default ON — decision B):** negative clause on all
+   full-body Character Maker output — *"correct adult head-to-body ratio, no chibi, no shortened limbs, no
    oversized head, consistent proportions across all panels."* The "consistent across all panels"
    part mirrors the V4.5 skin-tone clause for character sheets.
 3. **Cinema anti-distortion guard (angle-conditional):** when camera angle ≠ eye-level, compiler
@@ -266,11 +269,26 @@ surfaced with extracted characters at unusual angles in Cinema.
 - **"Set proportions" button on existing library entries** so already-saved extracted characters
   can get chips manually without re-extracting.
 
-### Open decisions (PENDING — lock before execution)
-- **A:** chips only, or chips + optional manual cm input?
-- **B:** anti-bogel guard always-on, or toggleable?
-- **C:** is V4.7 its own version, or does it ride on another release? Scope to weigh: it touches
-  the Examine prompt, the character record, and the Cinema compiler.
+### Decisions (LOCKED 6 Aug 2026)
+
+- **A — LOCKED: chips + optional manual cm input.** Height chips (petite / average / tall /
+  very tall) plus an optional cm field.
+- **A2 — LOCKED: auto-sync.** Entering a cm value automatically moves the chip to the matching
+  bracket, so chip and cm can never contradict. Same pattern as the V4.4 gender-fork auto-sync.
+  The **chip remains the source of the head-height ratio**; cm is carried into the prompt as
+  reinforcement.
+- **B — LOCKED: toggleable, default ON.** The anti-bogel guard is a toggle, not a permanent
+  constant. This departs from the locked-formula pattern deliberately, so Creative Context modes
+  like cartoon and fantasy can use non-realistic proportions. Default ON so the safe behaviour is
+  the baseline.
+- **C — LOCKED: V4.7 is the next release.** No other release is in flight after V4.6 shipped, so
+  V4.7 becomes the next version, and any other work that comes up rides along with it.
+
+**Why B departs from the locked-formula pattern.** Height data (chips/cm) tells the model *how
+tall* the character is; the anti-bogel guard tells it *not to break* the head-to-body ratio.
+Those are independent — a model can render 180cm at 5.5 head-heights, which is still bogel, just
+tall. The guard also carries the "consistent proportions across all panels" clause, which nothing
+else covers. So it cannot be folded into the height phrasing; it survives as its own toggle.
 
 ---
 

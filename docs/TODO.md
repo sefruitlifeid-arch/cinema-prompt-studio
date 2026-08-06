@@ -59,26 +59,42 @@ itself. The "Character reference attached" toggle does *not* fix it — the iden
 medium shot, so only the face is anchored. Full design in `docs/CONTEXT.md` Part 5 item 4 and
 `docs/PROGRESS.md` §6b.
 **Complexity:** Medium-to-high. Scope spans the Examine prompt, the character record shape, and
-the Cinema compiler — weigh that against decision C. Three parts — height +
-build chips compiled to a head-height ratio; an anti-bogel guard constant on full-body
-Character Maker output (always-on vs toggleable is decision B); an angle-conditional Cinema
-anti-distortion clause. Plus a
+the Cinema compiler. Three parts — height chips plus an optional auto-syncing cm field, and build
+chips, compiled to a head-height ratio; a toggleable anti-bogel guard (default ON) on full-body
+Character Maker output; an angle-conditional Cinema anti-distortion clause. Plus a
 `proportionClause` field persisted on the character record and a "Set proportions" button to
 patch already-saved entries.
 
-**Three decisions still open — lock these before any execution:**
-- **A:** chips only, or chips + optional manual cm input?
-- **B:** anti-bogel guard always-on, or toggleable?
-- **C:** is V4.7 its own version, or does it ride on another release?
+**Decisions — LOCKED 6 Aug 2026.** Settled; do not relitigate.
 
-**Dependencies:** None blocking — the three open decisions are the only real gate. Item 1's
-identity-plate and character-sheet passes settle the flat grade, which is a *lighting* concern;
+- **A — LOCKED: chips + optional manual cm input.** Height chips (petite / average / tall /
+  very tall) plus an optional cm field.
+- **A2 — LOCKED: auto-sync.** Entering a cm value automatically moves the chip to the matching
+  bracket, so chip and cm can never contradict. Same pattern as the V4.4 gender-fork auto-sync.
+  The **chip remains the source of the head-height ratio**; cm is carried into the prompt as
+  reinforcement.
+- **B — LOCKED: toggleable, default ON.** The anti-bogel guard is a toggle, not a permanent
+  constant. This departs from the locked-formula pattern deliberately, so Creative Context modes
+  like cartoon and fantasy can use non-realistic proportions. Default ON so the safe behaviour is
+  the baseline.
+- **C — LOCKED: V4.7 is the next release.** No other release is in flight after V4.6 shipped, so
+  V4.7 becomes the next version, and any other work that comes up rides along with it.
+
+**Why B departs from the locked-formula pattern.** Height data (chips/cm) tells the model *how
+tall* the character is; the anti-bogel guard tells it *not to break* the head-to-body ratio.
+Those are independent — a model can render 180cm at 5.5 head-heights, which is still bogel, just
+tall. The guard also carries the "consistent proportions across all panels" clause, which nothing
+else covers. So it cannot be folded into the height phrasing; it survives as its own toggle.
+
+**Dependencies:** None blocking — and with A, A2, B and C locked there is no design gate left.
+Item 1's identity-plate and character-sheet passes settle the flat grade, which is a *lighting*
+concern;
 V4.7 is body proportion, a separate axis, so the outstanding outfit- and expression-sheet checks
 do not gate it. Item 2 is not a dependency either: it is a verification task that produces no code
 V4.7 builds on, and any parser bug it surfaces would land in `src/utils/blocking.js`, which V4.7
 never touches. The two do share one surface — both add sentences to the Cinema compiler's
 assembly array — but they are independent sentences, a coordination detail rather than a gate.
-**Do not start implementation until A, B and C are locked.**
+**Ready for implementation** — the decisions above are locked.
 
 ### 5. Export / import libraries as JSON
 **Reason:** Every character, product, location, blocking, and preset lives only in this

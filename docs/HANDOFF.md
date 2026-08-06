@@ -113,8 +113,8 @@ Nothing prevents the app from running. Two real defects:
 (`99d1f75`) are both on `main`. `PRODUCT_DECISIONS.md` §7 still carries the V4.6 spec, but it
 is there as the record of *why* each piece is shaped the way it is, not as work to do.
 
-**V4.7** (body proportion + anti-distortion) is in design with three decisions still open —
-see `TODO.md` item 4. Do not start implementation until they are locked.
+**V4.7** (body proportion + anti-distortion) is the next release; its decisions were locked on
+6 Aug 2026 — see `TODO.md` item 4 for the locked set and `PROGRESS.md` §6b for the rationale.
 
 ---
 
