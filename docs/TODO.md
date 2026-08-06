@@ -6,6 +6,11 @@ Ranked. Each item lists reason, complexity, and dependencies.
 
 ## Recently shipped
 
+**V4.7 — body proportion control + anti-distortion.** Shipped 7 Aug 2026 as four independent
+commits: `a5208a7` (V4.7a), `95f744d` (V4.7b), `6cf2dd5` (V4.7c), `380d805` (V4.7d). See item 4
+below for the locked decisions and, importantly, the list of places where the shipped code
+deliberately differs from the written spec.
+
 **V4.6 — character thumbnails + in-app Help modal.** Both commits landed and are on `main`:
 `eda306b` (V4.6a, thumbnails via `src/utils/thumb.js` + shared `src/components/CharChip.jsx`)
 and `99d1f75` (V4.6b, `src/components/HelpModal.jsx` opened from the header **Help** button,
@@ -49,7 +54,7 @@ corrected when it was folded into `docs/PROGRESS.md`. `CLAUDE.md` warning #2 sta
 
 ## Short term
 
-### 4. V4.7 — body proportion control + anti-distortion
+### 4. V4.7 — body proportion control + anti-distortion — **SHIPPED 7 Aug 2026**
 **Reason:** Proportions go wrong — sometimes "bogel" (chibi/short), sometimes head-to-body ratio
 off. It surfaces specifically with **extracted** characters in **Cinema at unusual camera
 angles**, for two stacked reasons: the Examine prompt captures only facial identity, so an
@@ -86,7 +91,41 @@ Those are independent — a model can render 180cm at 5.5 head-heights, which is
 tall. The guard also carries the "consistent proportions across all panels" clause, which nothing
 else covers. So it cannot be folded into the height phrasing; it survives as its own toggle.
 
-**Dependencies:** None blocking — and with A, A2, B and C locked there is no design gate left.
+**Shipped 7 Aug 2026** as four independent commits:
+`a5208a7` (V4.7a — proportion chips, cm auto-sync, `proportionClause` persisted),
+`95f744d` (V4.7b — anti-bogel guard, toggleable, default ON),
+`6cf2dd5` (V4.7c — angle-conditional anti-distortion guard in the Cinema compiler),
+`380d805` (V4.7d — Examine estimates proportions; "Set proportions" for saved characters).
+
+**Implementation notes — where the build differs from the written spec.** Recorded because a
+reader comparing the spec against the code would otherwise think something was missed.
+
+- **`BUILD_CHIPS` was never created.** `buildProportionClause` reads the pre-existing `ID_BUILD`
+  row (slim / athletic / average / stocky / heavyset), which already fed the identity paragraph.
+  A second build row would have let a single prompt contradict itself. Build affects mass wording
+  only and never changes the head-height number. `ID_BUILD` gained a short `mass` field; no preset
+  migration was needed.
+- **Cinema gained `cineCharacterId`**, mirroring Storyboard's `sbCharacterId`. Cinema previously
+  held the character as free text with no link to the library record. The id is cleared when the
+  user edits the identity textarea after selecting, so a hand-edited character cannot claim stale
+  proportions.
+- **`proportionClause` supersedes the pre-existing `refProportion` line** (originally
+  `App.jsx:294`, now `:314`) when the character has one; that line still fires for characters
+  without proportion data. **This pre-existing line is likely why the proportion bug was
+  intermittent rather than constant** — it was already asserting "figure proportions anatomically
+  correct" whenever the reference toggle was on, with no actual height anchor behind it.
+- **The anti-distortion guard keys on `Math.abs(tilt) >= 25`** — the same band `anglePhrase` uses
+  to decide it says "at eye level", so the guard appears exactly when the prompt stops claiming
+  eye level. The spec's mention of "dutch" did not apply: this app has no roll control, only orbit
+  rotation and tilt.
+- **The proportion block renders in all three identity modes** — scratch, extract and
+  reference-locked — not only "Build from scratch". It first rendered only in scratch, which left
+  the Examine-parsed chips invisible in extract mode. A Build row appears only where the scratch
+  identity row is not already showing one, so there is exactly one Build row and one Height row in
+  every mode.
+
+**Dependencies (historical):** None blocking — and with A, A2, B and C locked there was no design
+gate left.
 Item 1's identity-plate and character-sheet passes settle the flat grade, which is a *lighting*
 concern;
 V4.7 is body proportion, a separate axis, so the outstanding outfit- and expression-sheet checks
@@ -94,7 +133,7 @@ do not gate it. Item 2 is not a dependency either: it is a verification task tha
 V4.7 builds on, and any parser bug it surfaces would land in `src/utils/blocking.js`, which V4.7
 never touches. The two do share one surface — both add sentences to the Cinema compiler's
 assembly array — but they are independent sentences, a coordination detail rather than a gate.
-**Ready for implementation** — the decisions above are locked.
+That coordination held: a saved blocking compiles correctly alongside both new clauses.
 
 ### 5. Export / import libraries as JSON
 **Reason:** Every character, product, location, blocking, and preset lives only in this
@@ -156,10 +195,9 @@ input surface.
 
 ## V4.8 candidates (minor, unscheduled)
 
-Observations from the 4 Aug 2026 V4.5 verification session. **None of these is a flat-grade
-defect** — the flat grade and the skin consistency clause both passed. Deliberately unnumbered
-so they do not disturb the ranked list above. All three are **UNSCHEDULED** and assigned to no
-version.
+Observations from the 4 Aug 2026 V4.5 verification session and the 7 Aug 2026 V4.7 build.
+Deliberately unnumbered so they do not disturb the ranked list above. All are **UNSCHEDULED** and
+assigned to no version.
 
 - **Backdrop not perfectly uniform across panel types.** In the 6-panel sheet the two full-body
   columns show a faint floor gradient at the bottom, while the headshot grid is perfectly flat.
@@ -170,7 +208,12 @@ version.
   head-to-body ratio, no shortened legs. This was a scratch-built character at neutral angles,
   which supports the V4.7 diagnosis that the proportion bug is specific to **extracted**
   characters at unusual camera angles rather than a general Character Maker defect. Recorded as
-  supporting evidence; the three V4.7 decisions (A, B, C in item 4) all remain open.
+  supporting evidence. The V4.7 decisions have since been locked and V4.7 has shipped.
+  **UNSCHEDULED.**
+- **`charSentence` produces a double period when the character text already ends in one**
+  (`App.jsx:279` — `` `${character.trim()}.` ``). Pre-existing and **not a V4.7 defect**, but V4.7
+  makes it common: Character Maker's auto-composed identity paragraph always ends in a period, so
+  a character saved from Character Maker and used in Cinema now reads "...an athletic build.."
   **UNSCHEDULED.**
 
 ---

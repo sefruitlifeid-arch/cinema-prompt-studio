@@ -181,7 +181,7 @@ verification.**
 | 1 | Verify V4.5 flat grade results | **In progress — user-side visual check** |
 | 2 | Test Blocking end-to-end with a real location image | **Pending** |
 | 3 | **V4.6** — character thumbnails + Help modal | **Shipped** (`eda306b`, `99d1f75`) |
-| 4 | **V4.7** — body proportion + anti-distortion | **Decisions locked 6 Aug 2026; ready to build** |
+| 4 | **V4.7** — body proportion + anti-distortion | **Shipped** 7 Aug 2026 (`a5208a7`, `95f744d`, `6cf2dd5`, `380d805`) |
 | 5 | In-app Help page as collapsible panel | Backlog (separate from the shipped V4.6 modal) |
 | 6 | Undo / redo | Deprioritized — presets cover most of the need |
 | 7 | Cloud sync | Backlog — needs backend + auth, separate project |
@@ -247,7 +247,7 @@ Delivered as two independent commits:
 `flex: 1; minHeight: 0` to fill the panel, and the context-aware scroll must be deferred behind
 `requestAnimationFrame` so it reads a committed layout.
 
-### Item 4 — V4.7 design (DECISIONS LOCKED)
+### Item 4 — V4.7 design (SHIPPED 7 Aug 2026)
 
 **Problem, as diagnosed:** proportions go wrong — sometimes "bogel" (chibi/short), sometimes
 head-to-body ratio off. It surfaces specifically with **extracted characters** (not built from

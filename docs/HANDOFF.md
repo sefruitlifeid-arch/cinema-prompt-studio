@@ -21,8 +21,10 @@ of re-imagining them on every generation.
 
 Live: `https://sefruitlifeid-arch.github.io/cinema-prompt-studio/`
 Repo: `sefruitlifeid-arch/cinema-prompt-studio`
-Current version: **V4.6**, deployed — `eda306b` (V4.6a, character thumbnails) and `99d1f75`
-(V4.6b, in-app Help modal), both on `main`.
+Current version: **V4.7**, shipped 7 Aug 2026 — `a5208a7` (V4.7a, proportion chips + cm
+auto-sync), `95f744d` (V4.7b, anti-bogel guard), `6cf2dd5` (V4.7c, Cinema anti-distortion guard),
+`380d805` (V4.7d, Examine proportions + "Set proportions"). V4.6 remains deployed beneath it:
+`eda306b` (character thumbnails) and `99d1f75` (in-app Help modal).
 
 ---
 
@@ -113,8 +115,32 @@ Nothing prevents the app from running. Two real defects:
 (`99d1f75`) are both on `main`. `PRODUCT_DECISIONS.md` §7 still carries the V4.6 spec, but it
 is there as the record of *why* each piece is shaped the way it is, not as work to do.
 
-**V4.7** (body proportion + anti-distortion) is the next release; its decisions were locked on
-6 Aug 2026 — see `TODO.md` item 4 for the locked set and `PROGRESS.md` §6b for the rationale.
+**V4.7 is SHIPPED** (7 Aug 2026, four commits above). Its decisions were locked on 6 Aug 2026;
+see `TODO.md` item 4 for the locked set and `PROGRESS.md` §6b for the rationale.
+
+**Where the shipped code differs from the spec above.** All five are deliberate; do not
+"restore" them to match the spec text.
+
+1. **No `BUILD_CHIPS` constant.** `buildProportionClause` reads the pre-existing `ID_BUILD` row
+   (slim / athletic / average / stocky / heavyset), which already fed the identity paragraph. A
+   second build row would have let one prompt contradict itself. Build affects mass wording only
+   and never changes the head-height number. `ID_BUILD` gained a short `mass` field; no preset
+   migration was needed.
+2. **Cinema gained `cineCharacterId`**, mirroring Storyboard's `sbCharacterId`. Cinema previously
+   held the character as free text with no link to the record. The id clears when the user edits
+   the identity textarea after selecting, so a hand-edited character cannot claim stale
+   proportions.
+3. **`proportionClause` supersedes the pre-existing `refProportion` line** (originally
+   `App.jsx:294`, now `:314`) when the character has one; that line still fires for characters
+   without proportion data. **That pre-existing line is likely why the proportion bug was
+   intermittent rather than constant** — it was already asserting "figure proportions
+   anatomically correct" whenever the reference toggle was on, with no height anchor behind it.
+4. **The anti-distortion guard keys on `Math.abs(tilt) >= 25`**, the same band `anglePhrase` uses
+   to decide it says "at eye level". The spec's mention of "dutch" did not apply: this app has no
+   roll control, only orbit rotation and tilt.
+5. **The proportion block renders in all three identity modes** — scratch, extract and
+   reference-locked — not only "Build from scratch", with a Build row shown only where the
+   scratch identity row is not already showing one.
 
 ---
 

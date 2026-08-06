@@ -1,6 +1,8 @@
 # FEATURE STATUS — Cinema Prompt Studio
 
-Verified against source on 2026-07-19; V4.6 rows updated 2026-08-03. Version **V4.6**. Status
+Verified against source on 2026-07-19; V4.6 rows updated 2026-08-03; V4.7 rows added 2026-08-07.
+Version **V4.7**, shipped 7 Aug 2026 as `a5208a7` (V4.7a), `95f744d` (V4.7b), `6cf2dd5` (V4.7c),
+`380d805` (V4.7d). Status
 reflects the code, not intent.
 
 "Complete" means the code path exists and compiles. It does **not** mean verified — see the
@@ -67,6 +69,9 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 | Manual instruction | Complete | Appended last. |
 | Multi-prompt output | Complete | Product "angle set" and multi-frame Storyboard render as separate copyable blocks. |
 | Character thumbnails | Complete (V4.6a) | Optional `thumb` data URL on the character record. `makeThumb` never throws; oversized/unreadable images fall back to no thumb with an inline notice. Rendered via `<CharChip>` in Character Maker, Cinema and Storyboard. Products and locations deliberately excluded. |
+| Body proportion control | Complete (V4.7) | Height chips + an optional cm field that auto-syncs the chip; the head-height ratio always comes from the chip. Build reuses the existing `ID_BUILD` row — **no `BUILD_CHIPS` constant was created** — and affects mass wording only. `proportionClause` + raw `{height, build, cm}` persist on the character record, both optional. Renders in scratch, extract and reference-locked modes. |
+| Anti-bogel guard | Complete (V4.7) | Toggle, default ON — deliberately not a locked constant, so cartoon/fantasy contexts can use non-realistic proportions. Injected into character sheet, full body + outfit and outfit sheet only; never the identity plate or expression sheet. |
+| Cinema anti-distortion guard | Complete (V4.7) | Injected when `Math.abs(tilt) >= 25`, the same band `anglePhrase` uses to say "at eye level". `cineCharacterId` links Cinema to the character record so `proportionClause` is injected even when the reference toggle is ON; the id clears when the identity textarea is edited. Supersedes the older `refProportion` line when a real clause exists. |
 | In-app Help modal | Complete (V4.6b) | Header **Help** button (`HelpCircle` icon) on all seven tabs; opens scrolled to the active tab's section. Static JSX transcription of `docs/USER_GUIDE.md`. Closes on backdrop / ✕ / Escape, locks body scroll. Zero coupling to app state. |
 | Clipboard copy | Complete | `navigator.clipboard` with `execCommand` fallback. |
 | Deploy | Complete | GitHub Actions → Pages on push to `main`. |
@@ -77,7 +82,6 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 
 | Feature | Status | Notes |
 |---|---|---|
-| Body proportion control | **V4.7, next release** | Height chips + optional auto-syncing cm field, plus build chips → head-height ratio; a toggleable anti-bogel guard (default ON); angle-conditional Cinema anti-distortion clause. **Decisions locked 6 Aug 2026** — see `docs/TODO.md` item 4. |
 | Export / import libraries | **Not planned yet** | The cheap mitigation for the no-cloud-sync risk. |
 | Cloud sync | **Planned** | Backlog. All state is device-local; clearing browser data loses every library. |
 | Image generation | **Non-goal** | Deliberately out of scope. |

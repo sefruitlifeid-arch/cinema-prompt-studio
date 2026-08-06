@@ -2,8 +2,8 @@
 
 **Originally written:** 21 July 2026 (chat-side) · **Consolidated into the repo:** 3 August 2026
 **Current version:** V4.6 shipped. V4.5 flat grade verified 4 Aug 2026 (identity plate +
-character sheet; outfit and expression sheets still unchecked). V4.7 is the next release — its
-decisions were locked 6 Aug 2026; see §6b.
+character sheet; outfit and expression sheets still unchecked). **V4.7 shipped 7 Aug 2026** —
+see §6b.
 **Live:** https://sefruitlifeid-arch.github.io/cinema-prompt-studio/
 **Repo:** `sefruitlifeid-arch/cinema-prompt-studio`
 
@@ -176,6 +176,26 @@ Two independent commits, exactly as specified in the locked spec.
   transcription of `docs/USER_GUIDE.md`, no markdown parser, no new dependencies. Closes on
   backdrop / ✕ / Escape, locks body scroll, sticky mini-TOC with in-panel anchor jumps.
 
+### V4.7 — Body proportion control + anti-distortion *(SHIPPED 7 Aug 2026)*
+
+Four independent commits. Full design, locked decisions and the shipped-vs-spec differences are
+in §6b and `docs/TODO.md` item 4.
+
+- **`a5208a7` — V4.7a: proportion chips + cm auto-sync.** `HEIGHT_BRACKETS` (petite / average /
+  tall / very tall) carrying the head-height ratio and the cm auto-sync bounds; ratios rise
+  monotonically (7 / 7.4 / 7.7 / 8) inside the realistic adult band and the brackets tile
+  120–220cm with no gaps. New `src/utils/proportion.js` with `bracketForCm` and
+  `buildProportionClause`. `proportionClause` plus the raw `{height, build, cm}` persist on the
+  character record, both optional.
+- **`95f744d` — V4.7b: anti-bogel guard.** `ANTI_BOGEL_CLAUSE` behind a toggle, default ON,
+  injected into the character sheet, full body + outfit and outfit sheet only.
+- **`6cf2dd5` — V4.7c: Cinema anti-distortion guard.** `ANTI_DISTORTION_CLAUSE` injected when the
+  camera is off eye level, plus the `cineCharacterId` link that carries `proportionClause` into
+  Cinema even when the reference toggle is ON — the gap that caused the original bug.
+- **`380d805` — V4.7d: Examine + "Set proportions".** `EXAMINE_PROMPT` now asks for a trailing
+  `PROPORTION | <height> | <build>` line; `parseProportionReply` reads it tolerantly and strips
+  the marker. "Set proportions" patches already-saved characters without re-extracting.
+
 ---
 
 ## 5. V4.5 verification checklist — partly done (4 Aug 2026)
@@ -210,7 +230,7 @@ candidates in `TODO.md` — none of them is a flat-grade failure.
 | 1 | Verify V4.5 flat grade results | Done for identity plate + character sheet (4 Aug 2026); outfit + expression sheets pending |
 | 2 | Test Blocking mode end-to-end | **Pending — current top item** |
 | 3 | **V4.6** — character thumbnails + in-app Help modal | **Shipped** (`eda306b`, `99d1f75`) |
-| 4 | **V4.7** — body proportion control + anti-distortion | Decisions locked 6 Aug 2026; ready to build |
+| 4 | **V4.7** — body proportion control + anti-distortion | **Shipped** 7 Aug 2026 (`a5208a7`, `95f744d`, `6cf2dd5`, `380d805`) |
 | 5 | Undo / redo | Deprioritized |
 | 6 | Cloud sync | Backlog |
 
@@ -219,7 +239,34 @@ dependencies, plus repo-only items (export/import libraries as JSON, splitting `
 
 ---
 
-## 6b. V4.7 — Body proportion control + anti-distortion (DECISIONS LOCKED)
+## 6b. V4.7 — Body proportion control + anti-distortion *(SHIPPED 7 Aug 2026)*
+
+**Shipped 7 Aug 2026** — `a5208a7`, `95f744d`, `6cf2dd5`, `380d805`. The design below is the
+record of *why*.
+
+**Where the shipped code differs from the spec above.** All five are deliberate; do not
+"restore" them to match the spec text.
+
+1. **No `BUILD_CHIPS` constant.** `buildProportionClause` reads the pre-existing `ID_BUILD` row
+   (slim / athletic / average / stocky / heavyset), which already fed the identity paragraph. A
+   second build row would have let one prompt contradict itself. Build affects mass wording only
+   and never changes the head-height number. `ID_BUILD` gained a short `mass` field; no preset
+   migration was needed.
+2. **Cinema gained `cineCharacterId`**, mirroring Storyboard's `sbCharacterId`. Cinema previously
+   held the character as free text with no link to the record. The id clears when the user edits
+   the identity textarea after selecting, so a hand-edited character cannot claim stale
+   proportions.
+3. **`proportionClause` supersedes the pre-existing `refProportion` line** (originally
+   `App.jsx:294`, now `:314`) when the character has one; that line still fires for characters
+   without proportion data. **That pre-existing line is likely why the proportion bug was
+   intermittent rather than constant** — it was already asserting "figure proportions
+   anatomically correct" whenever the reference toggle was on, with no height anchor behind it.
+4. **The anti-distortion guard keys on `Math.abs(tilt) >= 25`**, the same band `anglePhrase` uses
+   to decide it says "at eye level". The spec's mention of "dutch" did not apply: this app has no
+   roll control, only orbit rotation and tilt.
+5. **The proportion block renders in all three identity modes** — scratch, extract and
+   reference-locked — not only "Build from scratch", with a Build row shown only where the
+   scratch identity row is not already showing one.
 
 ### Problem
 Proportions go wrong — sometimes "bogel" (chibi/short), sometimes head-to-body ratio off. Two
