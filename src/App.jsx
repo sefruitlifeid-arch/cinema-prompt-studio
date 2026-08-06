@@ -14,9 +14,11 @@ import {
   CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9,
   ANTI_TEXT_CLAUSE, FLAT_GRADE_CLOSE, SKIN_CONSISTENCY_CLAUSE, REALISM_CLOSE, OUTFIT_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
+  HEIGHT_BRACKETS,
   STYLE_VIBES,
 } from "./constants/data";
 import { anglePhrase, placementPhrase, textPositionPhrase, polar, bladePoints, realismForShot, refAnchor } from "./utils/phrases";
+import { buildProportionClause, bracketForCm } from "./utils/proportion";
 import { parseSubAreas, compileBlockingClause } from "./utils/blocking";
 import { PRESET_KEY, CHAR_KEY, PRODUCT_KEY, BRAND_KEY, LOCATION_KEY, memStore, store, copyText } from "./utils/storage";
 import { Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper } from "./components/primitives";
@@ -167,6 +169,8 @@ export default function CinemaPromptStudio() {
   const [cmHairLength, setCmHairLength] = useState("");
   const [cmHairTexture, setCmHairTexture] = useState("");
   const [cmBuild, setCmBuild] = useState("");
+  const [cmHeight, setCmHeight] = useState("");
+  const [cmHeightCm, setCmHeightCm] = useState("");
   const [cmMarks, setCmMarks] = useState("");
   const [cmIdentityText, setCmIdentityText] = useState("");
   const [cmIdentityDirty, setCmIdentityDirty] = useState(false);
@@ -611,6 +615,7 @@ export default function CinemaPromptStudio() {
     designRef, brandFontField, thumbTypeId, textBlocks,
     sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbDirection, sbAspect, sbRefLocked, sbRefHandle, sbFrames,
     cmOutput, cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild,
+    cmHeight, cmHeightCm,
     cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmSource,
     cmBaseGender, cmRefLocked, cmRefHandle, cmDetail, cmNeckline,
     blLocationId, cineBlockingId, cineLocationId,
@@ -647,6 +652,7 @@ export default function CinemaPromptStudio() {
       cmAge: setCmAge, cmGender: setCmGender, cmSkin: setCmSkin,
       cmFace: setCmFace, cmEyes: setCmEyes, cmHairColor: setCmHairColor,
       cmHairLength: setCmHairLength, cmHairTexture: setCmHairTexture, cmBuild: setCmBuild,
+      cmHeight: setCmHeight, cmHeightCm: setCmHeightCm,
       cmMarks: setCmMarks, cmIdentityText: setCmIdentityText, cmIdentityDirty: setCmIdentityDirty,
       cmOutfit: setCmOutfit, cmVibe: setCmVibe, cmSource: setCmSource,
       cmBaseGender: setCmBaseGender, cmRefLocked: setCmRefLocked, cmRefHandle: setCmRefHandle, cmDetail: setCmDetail, cmNeckline: setCmNeckline,
@@ -775,6 +781,13 @@ export default function CinemaPromptStudio() {
     if (!name || !cmIdentityText.trim()) return;
     const record = { id: Date.now().toString(), name, text: cmIdentityText.trim() };
     if (cmThumb) record.thumb = cmThumb;
+    // Optional since V4.7 — old records lack both fields and every consumer handles that.
+    // `proportion` keeps the raw chips so the UI can restore them; `proportionClause` is
+    // the compiled sentence the Cinema and Storyboard compilers read.
+    if (cmProportionClause) {
+      record.proportionClause = cmProportionClause;
+      record.proportion = { height: cmHeight, build: cmBuild, cm: cmHeightCm };
+    }
     const next = [...characters, record];
     setCharacters(next);
     store.write(CHAR_KEY, next);
@@ -810,6 +823,13 @@ export default function CinemaPromptStudio() {
       if (l) setThumbLayout(l.phrase);
     }
   };
+
+  // V4.7 — the compiled proportion sentence. Ratio comes from the chip; cm rides along
+  // as reinforcement (decision A2). Empty string when no height chip is set.
+  const cmProportionClause = useMemo(
+    () => buildProportionClause(cmHeight, cmBuild, cmHeightCm),
+    [cmHeight, cmBuild, cmHeightCm]
+  );
 
   const buildIdentityFromChips = () => {
     const gObj = ID_GENDER.find((g) => g.id === cmGender);
@@ -1995,6 +2015,32 @@ export default function CinemaPromptStudio() {
                     </div>
                   </div>
                   <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Height</div>
+                    <div className="flex flex-wrap">
+                      {HEIGHT_BRACKETS.map((h) => <Chip key={h.id} active={cmHeight === h.id} onClick={() => setCmHeight(cmHeight === h.id ? "" : h.id)}>{h.label}</Chip>)}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={cmHeightCm}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setCmHeightCm(v);
+                          const b = bracketForCm(v);
+                          if (b) setCmHeight(b);
+                        }}
+                        placeholder="cm"
+                        className="rounded px-2 py-1 text-sm"
+                        style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}`, width: 90 }}
+                      />
+                      <span className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>optional — sets the chip automatically</span>
+                    </div>
+                    {cmProportionClause && (
+                      <p className="text-xs mt-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.75 }}>{cmProportionClause}</p>
+                    )}
+                  </div>
+                  <div className="mb-3">
                     <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Distinguishing marks (optional)</div>
                     <input value={cmMarks} onChange={(e) => setCmMarks(e.target.value)} placeholder="e.g. a small scar above the left eyebrow, freckles across the nose" className="w-full rounded p-2.5 text-sm" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}/>
                   </div>
@@ -2074,7 +2120,7 @@ export default function CinemaPromptStudio() {
                   <div className="flex flex-wrap gap-2">
                     {characters.map((c) => (
                       <div key={c.id} className="flex items-center gap-1">
-                        <CharChip character={c} selected={false} onClick={() => { setCmIdentityText(c.text); setCmIdentityDirty(cmSource === "scratch"); setCmThumb(c.thumb || null); }} />
+                        <CharChip character={c} selected={false} onClick={() => { setCmIdentityText(c.text); setCmIdentityDirty(cmSource === "scratch"); setCmThumb(c.thumb || null); const p = c.proportion; if (p) { setCmHeight(p.height || ""); setCmBuild(p.build || ""); setCmHeightCm(p.cm || ""); } }} />
                         <button onClick={() => deleteCharacter(c.id)} title="Delete" className="px-1 py-1" style={{ color: COLORS.steel }}><X size={12}/></button>
                       </div>
                     ))}

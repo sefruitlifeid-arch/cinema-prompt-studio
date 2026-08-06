@@ -464,11 +464,23 @@ export const ID_HAIR_TEXTURE = [
 ];
 
 export const ID_BUILD = [
-  { id: "slim", label: "Slim", phrase: "a slim, lean build" },
-  { id: "athletic", label: "Athletic", phrase: "an athletic build" },
-  { id: "average", label: "Average", phrase: "an average build" },
-  { id: "stocky", label: "Stocky", phrase: "a stocky, broad-shouldered build" },
-  { id: "heavyset", label: "Heavy-set", phrase: "a heavyset build" },
+  { id: "slim", label: "Slim", phrase: "a slim, lean build", mass: "slim" },
+  { id: "athletic", label: "Athletic", phrase: "an athletic build", mass: "athletic" },
+  { id: "average", label: "Average", phrase: "an average build", mass: "average" },
+  { id: "stocky", label: "Stocky", phrase: "a stocky, broad-shouldered build", mass: "stocky" },
+  { id: "heavyset", label: "Heavy-set", phrase: "a heavyset build", mass: "heavyset" },
+];
+
+// V4.7 — height brackets for the proportion clause.
+// `heads` is the head-height ratio; it is derived from the CHIP, never from the cm
+// field (decision A2). Ratios rise monotonically and stay inside the realistic adult
+// band (7-8 heads). `minCm`/`maxCm` are the cm -> chip auto-sync bounds; null means
+// open-ended, and the brackets tile the whole range with no gaps.
+export const HEIGHT_BRACKETS = [
+  { id: "petite", label: "Petite", adj: "petite", phrase: "petite stature", legs: "compact limb length", heads: 7, minCm: null, maxCm: 159 },
+  { id: "average", label: "Average", adj: "average-height", phrase: "average stature", legs: "balanced limb length", heads: 7.4, minCm: 160, maxCm: 172 },
+  { id: "tall", label: "Tall", adj: "tall", phrase: "tall stature", legs: "long legs", heads: 7.7, minCm: 173, maxCm: 184 },
+  { id: "verytall", label: "Very tall", adj: "very tall", phrase: "very tall stature", legs: "notably long legs", heads: 8, minCm: 185, maxCm: null },
 ];
 
 export const STYLE_VIBES = [
