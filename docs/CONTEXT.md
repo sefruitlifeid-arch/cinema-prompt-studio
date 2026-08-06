@@ -238,7 +238,8 @@ Delivered as two independent commits:
   there, instantly (no smooth on first paint).
 - Content: static JSX transcription of `docs/USER_GUIDE.md`, verbatim, tables rendered as simple
   styled tables. No markdown parser, no new dependencies.
-- `App.jsx`: `helpOpen` state, `?` button in the header visible on all seven tabs, tab-id →
+- `App.jsx`: `helpOpen` state, a header **Help** button (`HelpCircle` icon) visible on all seven
+  tabs, tab-id →
   section-id map (unknown → null), single `<HelpModal>` mount at root. Zero reads/writes of other
   app state.
 

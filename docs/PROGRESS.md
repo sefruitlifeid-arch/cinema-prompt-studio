@@ -73,7 +73,8 @@ All with in-memory fallback for sandboxed iframes.
   at the **start** of the compiled prompt because models weight the opening heavily.
 - **Manual Instruction** — free text appended verbatim at the end. The escape hatch.
 - **Presets** — per-mode state snapshots; save / load / delete.
-- **Help modal** — `?` in the header, context-aware to the active tab (V4.6b).
+- **Help modal** — header **Help** button (`HelpCircle` icon), context-aware to the active tab
+  (V4.6b).
 
 ---
 
@@ -170,7 +171,7 @@ Two independent commits, exactly as specified in the locked spec.
   initials fallback in one place, rolled out to exactly three sites (Character Maker library,
   Cinema character panel, Storyboard scene-lock picker). Product and location chips untouched.
 - **`99d1f75` — V4.6b: Help modal.** `src/components/HelpModal.jsx`, context-aware via a
-  tab-id → section-id map, opened by a `?` header button present on all seven tabs. Static JSX
+  tab-id → section-id map, opened by the header **Help** button present on all seven tabs. Static JSX
   transcription of `docs/USER_GUIDE.md`, no markdown parser, no new dependencies. Closes on
   backdrop / ✕ / Escape, locks body scroll, sticky mini-TOC with in-panel anchor jumps.
 
@@ -245,8 +246,8 @@ surfaced with extracted characters at unusual angles in Cinema.
    - Compiler derives a head-height ratio from height+build, e.g. *"adult proportions of
      approximately 7.5 head-heights, tall slender build, long legs, natural anatomical
      proportions."*
-2. **Anti-bogel guard clause (locked constant, always on):** permanent negative on all full-body
-   Character Maker output — *"correct adult head-to-body ratio, no chibi, no shortened limbs, no
+2. **Anti-bogel guard clause (locked constant; always-on vs toggleable is decision B):**
+   permanent negative on all full-body Character Maker output — *"correct adult head-to-body ratio, no chibi, no shortened limbs, no
    oversized head, consistent proportions across all panels."* The "consistent across all panels"
    part mirrors the V4.5 skin-tone clause for character sheets.
 3. **Cinema anti-distortion guard (angle-conditional):** when camera angle ≠ eye-level, compiler
@@ -267,9 +268,9 @@ surfaced with extracted characters at unusual angles in Cinema.
 
 ### Open decisions (PENDING — lock before execution)
 - **A:** chips only, or chips + optional manual cm input?
-- **B:** anti-bogel guard always-on (recommended, matches locked-formula pattern) or toggleable?
-- **C:** confirmed as its own version V4.7 (touches examine prompt + character record + Cinema
-  compiler — too large to ride on V4.6). Tentatively yes.
+- **B:** anti-bogel guard always-on, or toggleable?
+- **C:** is V4.7 its own version, or does it ride on another release? Scope to weigh: it touches
+  the Examine prompt, the character record, and the Cinema compiler.
 
 ---
 

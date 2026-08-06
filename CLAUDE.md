@@ -60,8 +60,9 @@ Escalate after two failed attempts rather than retrying the same approach.
 Read on demand, not every session:
 
 - `docs/HANDOFF.md` — start here: current state, open items, next steps
-- `docs/PRODUCT_DECISIONS.md` — why each locked decision exists; version history; V4.6 plan
+- `docs/PRODUCT_DECISIONS.md` — why each locked decision exists; version history; the shipped
+  V4.6 rationale
 - `docs/FEATURE_STATUS.md` — per-feature status and known limitations
 - `docs/AI_INSTRUCTIONS.md` — build strategy, surgical replacement discipline, model tiering
 - `docs/TODO.md` — ranked backlog with complexity and dependencies
-- `docs/USER_GUIDE.md` — end-user guide; content source for the planned V4.6 Help modal
+- `docs/USER_GUIDE.md` — end-user guide; content source for the shipped V4.6 Help modal

@@ -236,13 +236,18 @@ English.
   `sbRefHandle`), so the anchor clause attaches to the right figure when several people
   are in frame.
 
-**Status: deployed, awaiting visual verification.** See the checklist in `HANDOFF.md`.
+**Status: deployed, partly verified 4 Aug 2026** — identity plate, 6-panel character sheet and
+skin-tone consistency all PASS; the outfit sheet (2A) and expression sheet are outstanding.
+See the checklist in `HANDOFF.md`.
 
 ---
 
-## 7. V4.6 — decisions locked, not built
+## 7. V4.6 — SHIPPED (`eda306b`, `99d1f75`)
 
-Do not redesign these; they were already argued through.
+Both pieces are built and on `main`: `eda306b` (V4.6a, character thumbnails) and `99d1f75`
+(V4.6b, in-app Help modal). **Do not rebuild them.** The spec below is retained as the record
+of *why* each piece is shaped the way it is — it is documentation, not a work item. Do not
+redesign these either; they were already argued through.
 
 ### Character thumbnails — option C
 Canvas-downscale the reference image to roughly 96px and store it as a data URL **on the
@@ -253,8 +258,9 @@ localStorage is the only store and the quota is shared across all five `cps_*` k
 unbounded data URL can break the whole app, not just thumbnails.
 
 ### Help — a modal, not an eighth tab
-A single `<HelpModal />` mounted once in `App.jsx`, opened by a `?` button in the header so it
-is reachable from all seven tabs. Content sourced from `cinema-prompt-studio-user-guide.md`
+A single `<HelpModal />` mounted once in `App.jsx`, opened by a header button so it
+is reachable from all seven tabs. *(As shipped, that control is labelled **Help** with a
+`HelpCircle` icon — see `src/App.jsx:885-892`.)* Content sourced from `cinema-prompt-studio-user-guide.md`
 and rendered as static JSX sections.
 
 **Why not a tab:** an eighth tab shifts tab indices and touches the mode switcher, the

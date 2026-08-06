@@ -8,7 +8,7 @@ Ranked. Each item lists reason, complexity, and dependencies.
 
 **V4.6 — character thumbnails + in-app Help modal.** Both commits landed and are on `main`:
 `eda306b` (V4.6a, thumbnails via `src/utils/thumb.js` + shared `src/components/CharChip.jsx`)
-and `99d1f75` (V4.6b, `src/components/HelpModal.jsx` opened from the header `?` button,
+and `99d1f75` (V4.6b, `src/components/HelpModal.jsx` opened from the header **Help** button,
 context-aware to the active tab). Shipped exactly to the locked spec — see `docs/CONTEXT.md`
 Part 5 for the spec and the two implementation notes discovered during the build.
 
@@ -102,7 +102,7 @@ cheap 80%.
 ## Long term
 
 ### 7. Split `App.jsx`
-**Reason:** 2,165 lines holding all state, all seven compilers, and all seven mode UIs. It is
+**Reason:** 2,216 lines holding all state, all seven compilers, and all seven mode UIs. It is
 the main reason edits need anchored string surgery instead of ordinary editing, and the main
 reason low-tier models fail on it.
 **Complexity:** Medium, and risky in one pass. Suggested order, one commit each:

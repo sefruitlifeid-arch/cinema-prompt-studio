@@ -2,7 +2,8 @@
 
 **Read this file first.** Everything else in `/docs` expands on it.
 
-Generated 2026-07-19, verified directly against the source of the deployed `main`.
+Generated 2026-07-19; status sections re-verified against the source of the deployed `main` on
+2026-08-06.
 
 ---
 
@@ -20,7 +21,8 @@ of re-imagining them on every generation.
 
 Live: `https://sefruitlifeid-arch.github.io/cinema-prompt-studio/`
 Repo: `sefruitlifeid-arch/cinema-prompt-studio`
-Current version: **V4.5**, deployed.
+Current version: **V4.6**, deployed — `eda306b` (V4.6a, character thumbnails) and `99d1f75`
+(V4.6b, in-app Help modal), both on `main`.
 
 ---
 
@@ -36,34 +38,45 @@ All seven modes compile and are shipped:
 | Design / Thumbnail | `design` | Working |
 | Storyboard | `assemble` | Working |
 | Blocking | `blocking` | Working, **untested end-to-end** |
-| Character Maker | `charmaker` | Working, **V4.5 output unverified** |
+| Character Maker | `charmaker` | Working, **V4.5 output partly verified** |
 
 Also working: global Brand Kit, Creative Context, Manual Instruction, per-mode presets, four
 localStorage libraries, clipboard copy with a sandboxed-iframe fallback, and GitHub Actions
 auto-deploy on push to `main`.
 
+Shipped in V4.6 and also working: optional character thumbnails (`thumb` data URL on the
+character record, rendered through the shared `CharChip` in Character Maker, Cinema and
+Storyboard) and the in-app Help modal, opened from the header **Help** button present on all
+seven tabs and scrolled to the active tab's section.
+
 ---
 
 ## Current goal
 
-**V4.5 shipped but has not been visually verified.** No new feature work should start until
-it is. Two open items, in order:
+The V4.5 flat grade was **partly verified on 4 Aug 2026** — the two priority checks passed,
+which clears the lighting base the Character Maker work sits on. Two open items remain:
 
-### 1. Verify the V4.5 flat grade (highest priority)
+### 1. Finish the V4.5 flat-grade verification
 
 This is a visual check, not a code change. Run `npm run preview` and generate:
 
 1. **Identity plate** — near-absent nose/chin shadow, no discernible key direction, no cheek
    hotspot. If you can tell where the light is, the flat grade did not take.
+   **PASS, 4 Aug 2026.**
 2. **Character sheet (6 panels)** — all six lit identically. Common failure: the profile
    headshots pick up a side key while the body columns stay flat.
+   **PASS, 4 Aug 2026** — no profile headshot picked up a side key.
 3. **Skin tone across panels** — face close-up vs. back body vs. profiles must read as one
    person. This is the specific target of `SKIN_CONSISTENCY_CLAUSE` and the real test.
+   **PASS, 4 Aug 2026** — reads as one person across all six panels.
 4. **Outfit sheet (2A)** — both neckline variants flat; the face anchor panel not brighter
-   than the body panels.
+   than the body panels. **Outstanding.**
 5. **Expression sheet** — flat across all nine cells, no cell-to-cell exposure drift.
+   **Outstanding.**
 
-Identity plate and character sheet cover most of the surface — do those first.
+Checks 1–3 were the priority set and all passed. Checks 4 and 5 are the remainder; neither
+blocks other work — they are a *lighting* concern, and three minor non-blocking findings from
+the same session are recorded as V4.8 candidates in `TODO.md`.
 
 ### 2. Test Blocking mode end-to-end
 
@@ -90,14 +103,18 @@ Nothing prevents the app from running. Two real defects:
 
 ## Recommended next steps
 
-1. Do the V4.5 verification above. Nothing else is worth starting until the flat grade is
-   confirmed.
-2. Read `PRODUCT_DECISIONS.md` before changing any compiler. Most of the odd-looking prompt
+1. Read `PRODUCT_DECISIONS.md` before changing any compiler. Most of the odd-looking prompt
    text is a deliberate fix for a specific image-model failure. It looks removable. It is not.
-3. Read `AI_INSTRUCTIONS.md` before writing code. The owner works discuss-first and will
+2. Read `AI_INSTRUCTIONS.md` before writing code. The owner works discuss-first and will
    reject unrequested rewrites.
-4. Fix the README base-path line — one line, and it is actively misleading.
-5. Then pick from `TODO.md`. V4.6 already has locked decisions; do not redesign it.
+3. Then pick from `TODO.md`. Its top item is testing Blocking end-to-end.
+
+**V4.6 is SHIPPED — do not rebuild it.** Character thumbnails (`eda306b`) and the Help modal
+(`99d1f75`) are both on `main`. `PRODUCT_DECISIONS.md` §7 still carries the V4.6 spec, but it
+is there as the record of *why* each piece is shaped the way it is, not as work to do.
+
+**V4.7** (body proportion + anti-distortion) is in design with three decisions still open —
+see `TODO.md` item 4. Do not start implementation until they are locked.
 
 ---
 
@@ -118,4 +135,6 @@ Nothing prevents the app from running. Two real defects:
 - **localStorage keys are versioned** (`cps_*_v1`). Changing an entry's shape requires a key
   bump or a defensive read. The code already defends — `location.subAreas` and
   `location.blockings` default to `[]` for entries saved before Blocking existed. Preserve
-  that pattern; V4.6 thumbnails will need the same treatment.
+  that pattern; the V4.6 `thumb` field already follows it — it is optional, there was no
+  migration, and every consumer handles its absence (`c.thumb || null` at the call sites, and
+  the initials fallback inside `CharChip`).

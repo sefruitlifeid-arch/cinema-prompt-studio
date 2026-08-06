@@ -67,7 +67,7 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 | Manual instruction | Complete | Appended last. |
 | Multi-prompt output | Complete | Product "angle set" and multi-frame Storyboard render as separate copyable blocks. |
 | Character thumbnails | Complete (V4.6a) | Optional `thumb` data URL on the character record. `makeThumb` never throws; oversized/unreadable images fall back to no thumb with an inline notice. Rendered via `<CharChip>` in Character Maker, Cinema and Storyboard. Products and locations deliberately excluded. |
-| In-app Help modal | Complete (V4.6b) | Header `?` on all seven tabs; opens scrolled to the active tab's section. Static JSX transcription of `docs/USER_GUIDE.md`. Closes on backdrop / ✕ / Escape, locks body scroll. Zero coupling to app state. |
+| In-app Help modal | Complete (V4.6b) | Header **Help** button (`HelpCircle` icon) on all seven tabs; opens scrolled to the active tab's section. Static JSX transcription of `docs/USER_GUIDE.md`. Closes on backdrop / ✕ / Escape, locks body scroll. Zero coupling to app state. |
 | Clipboard copy | Complete | `navigator.clipboard` with `execCommand` fallback. |
 | Deploy | Complete | GitHub Actions → Pages on push to `main`. |
 
@@ -77,7 +77,7 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 
 | Feature | Status | Notes |
 |---|---|---|
-| Body proportion control | **V4.7, in design** | Height + build chips → head-height ratio, always-on anti-bogel guard, angle-conditional Cinema anti-distortion clause. **Three decisions still open** — see `docs/TODO.md` item 4. |
+| Body proportion control | **V4.7, in design** | Height + build chips → head-height ratio, an anti-bogel guard clause, angle-conditional Cinema anti-distortion clause. **Three decisions still open** — see `docs/TODO.md` item 4. |
 | Export / import libraries | **Not planned yet** | The cheap mitigation for the no-cloud-sync risk. |
 | Cloud sync | **Planned** | Backlog. All state is device-local; clearing browser data loses every library. |
 | Image generation | **Non-goal** | Deliberately out of scope. |
@@ -90,7 +90,7 @@ Data flow is one-way and synchronous: `useState` → derived `useMemo` compilers
 
 ## Known limitations
 
-- **App.jsx is a 2,165-line monolith.** Every mode's state and JSX live in one component.
+- **App.jsx is a 2,216-line monolith.** Every mode's state and JSX live in one component.
   Editing it reliably requires anchored string replacement, not memory of what the code
   "should" look like.
 - **No undo.** Deleting a library entry or a saved blocking is immediate and permanent.
