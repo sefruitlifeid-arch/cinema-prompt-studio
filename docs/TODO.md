@@ -71,7 +71,14 @@ patch already-saved entries.
 - **B:** anti-bogel guard always-on, or toggleable?
 - **C:** is V4.7 its own version, or does it ride on another release?
 
-**Dependencies:** Items 1 and 2 first. Do not start implementation until A, B and C are locked.
+**Dependencies:** None blocking — the three open decisions are the only real gate. Item 1's
+identity-plate and character-sheet passes settle the flat grade, which is a *lighting* concern;
+V4.7 is body proportion, a separate axis, so the outstanding outfit- and expression-sheet checks
+do not gate it. Item 2 is not a dependency either: it is a verification task that produces no code
+V4.7 builds on, and any parser bug it surfaces would land in `src/utils/blocking.js`, which V4.7
+never touches. The two do share one surface — both add sentences to the Cinema compiler's
+assembly array — but they are independent sentences, a coordination detail rather than a gate.
+**Do not start implementation until A, B and C are locked.**
 
 ### 5. Export / import libraries as JSON
 **Reason:** Every character, product, location, blocking, and preset lives only in this
