@@ -342,6 +342,13 @@ export const FLAT_GRADE_CLOSE =
 // "consistent proportions across all panels" tail is the only thing in the whole
 // prompt set addressing panel-to-panel proportion drift on the 6-panel sheet —
 // do not trim it.
+// V4.7 — Cinema anti-distortion guard. Injected only when the camera is off
+// eye level, where perspective physically alters apparent proportions and the
+// model may bake that distortion into the anatomy itself rather than rendering a
+// correctly-proportioned figure seen from that angle.
+export const ANTI_DISTORTION_CLAUSE =
+  "perspective affects framing only — character anatomy remains correct adult proportions, no exaggerated head or limbs from the camera angle.";
+
 export const ANTI_BOGEL_CLAUSE =
   "correct adult head-to-body ratio, no chibi, no shortened limbs, no oversized head, consistent proportions across all panels.";
 

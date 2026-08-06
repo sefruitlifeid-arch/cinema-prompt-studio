@@ -13,7 +13,7 @@ import {
   EMPTY_BRAND,
   CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9,
   ANTI_TEXT_CLAUSE, FLAT_GRADE_CLOSE, SKIN_CONSISTENCY_CLAUSE, REALISM_CLOSE, OUTFIT_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
-  ANTI_BOGEL_CLAUSE,
+  ANTI_BOGEL_CLAUSE, ANTI_DISTORTION_CLAUSE,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
   HEIGHT_BRACKETS,
   STYLE_VIBES,
@@ -64,6 +64,7 @@ export default function CinemaPromptStudio() {
   const [shotId, setShotId] = useState("chestup");
   const [rotation, setRotation] = useState(30);
   const [tilt, setTilt] = useState(0);
+  const [cineCharacterId, setCineCharacterId] = useState("");
   const [cineRefLocked, setCineRefLocked] = useState(false);
   const [cineRefHandle, setCineRefHandle] = useState("");
   const [cineOutfitRef, setCineOutfitRef] = useState(false);
@@ -297,11 +298,23 @@ export default function CinemaPromptStudio() {
     const realismSentence = realismForShot(shotId, { eyeSentence, skinTexture, opticalImperfection });
     const closing = antiAI ? "Real photographic frame captured on a real camera — no CGI, no plastic, no AI smoothness, no skin smoothing." : "";
     const aspectSentence = cineAspect && cineAspect.phrase ? `${cineAspect.phrase.charAt(0).toUpperCase()}${cineAspect.phrase.slice(1)}.` : "";
-    const refProportion = cineRefLocked ? "Figure proportions anatomically correct and consistent with the reference." : "";
-    return [opening, charSentence, actionSentence, outfitSentence, productSentence, locationSentence, blockingSentence, placeSentence, cameraSentence, lightingSentence, expressionSentence, realismSentence, brandClause, aspectSentence, closing, refProportion]
+    // V4.7 — proportion rides in from the character record even when the reference
+    // toggle is ON. The identity plate is a medium shot, so it anchors the face only;
+    // body proportion stays unlocked. That gap is the whole reason this bug exists.
+    const cineCharRecord = characters.find((c) => c.id === cineCharacterId);
+    const proportionSentence = cineCharRecord && cineCharRecord.proportionClause
+      ? `${cineCharRecord.proportionClause.charAt(0).toUpperCase()}${cineCharRecord.proportionClause.slice(1)}.`
+      : "";
+    // Keyed on the same +/-25 degree band anglePhrase uses to say "at eye level", so the
+    // guard appears exactly when the prompt stops claiming eye level. Rotation is orbit
+    // direction and does not distort proportions, so it is not part of the test.
+    const antiDistortionSentence = Math.abs(tilt) >= 25 ? `${ANTI_DISTORTION_CLAUSE.charAt(0).toUpperCase()}${ANTI_DISTORTION_CLAUSE.slice(1)}` : "";
+    // Superseded by the real proportion clause when the character has one.
+    const refProportion = cineRefLocked && !proportionSentence ? "Figure proportions anatomically correct and consistent with the reference." : "";
+    return [opening, charSentence, proportionSentence, actionSentence, outfitSentence, productSentence, locationSentence, blockingSentence, placeSentence, cameraSentence, lightingSentence, expressionSentence, realismSentence, brandClause, aspectSentence, closing, antiDistortionSentence, refProportion]
       .filter(Boolean)
       .join(" ");
-  }, [character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, cineAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, cineRefLocked, cineRefHandle, cineOutfitRef, cineBlockingClause]);
+  }, [character, action, outfit, location, genreId, shotId, rotation, tilt, compId, lensId, sensor, focalIdx, apertureIdx, keyId, qualityId, kelvin, expressionPhrase, eyeEngine, skinTexture, opticalImperfection, antiAI, cineAspectId, injectProduct, productInteraction, injectedProduct, brandClause, charPlacement, charPx, charPy, cineRefLocked, cineRefHandle, cineOutfitRef, cineBlockingClause, cineCharacterId, characters]);
 
   // ---------- Product compiler ----------
   const productPrompt = useMemo(() => {
@@ -550,7 +563,7 @@ export default function CinemaPromptStudio() {
         `A 6-panel character reference sheet on a single wide 16:9 canvas with an asymmetric layout: the LEFT HALF is two tall full-height columns side by side (Panel 1 and Panel 2, each a full-height portrait cell); the RIGHT HALF is a 2x2 grid of four equal square cells (Panels 3-6). Panels separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
         panels,
         `${flatUniform("six")} Sharp focus across every panel. Identical character identity locked across all six panels — same face, same skin, same hair, same wardrobe, same accessories, same proportions in every cell.`,
-        cmAntiBogel ? ANTI_BOGEL_CLAUSE : "",
+        cmAntiBogel ? `${ANTI_BOGEL_CLAUSE.charAt(0).toUpperCase()}${ANTI_BOGEL_CLAUSE.slice(1)}` : "",
         SKIN_CONSISTENCY_CLAUSE,
         ANTI_TEXT_CLAUSE,
       ].filter(Boolean).join("\n\n");
@@ -564,7 +577,7 @@ export default function CinemaPromptStudio() {
         `The character wears ${outfitLine}, head to toe.`,
         "Standing angled slightly from camera, weight shifted naturally, head level, neutral relaxed expression, eyes to camera. Framed full body from head to just below the footwear.",
         FLAT_GRADE_CLOSE,
-        cmAntiBogel ? ANTI_BOGEL_CLAUSE : "",
+        cmAntiBogel ? `${ANTI_BOGEL_CLAUSE.charAt(0).toUpperCase()}${ANTI_BOGEL_CLAUSE.slice(1)}` : "",
         ANTI_TEXT_CLAUSE,
       ].filter(Boolean).join(" ");
     }
@@ -584,7 +597,7 @@ export default function CinemaPromptStudio() {
         panels,
         "The clothing, fabric, colors and details must be pixel-consistent across all panels.",
         flatUniform("three"),
-        cmAntiBogel ? ANTI_BOGEL_CLAUSE : "",
+        cmAntiBogel ? `${ANTI_BOGEL_CLAUSE.charAt(0).toUpperCase()}${ANTI_BOGEL_CLAUSE.slice(1)}` : "",
         SKIN_CONSISTENCY_CLAUSE,
         ANTI_TEXT_CLAUSE,
       ].filter(Boolean).join("\n\n");
@@ -611,6 +624,7 @@ export default function CinemaPromptStudio() {
   const snapshot = () => ({
     lensId, sensor, focalIdx, apertureIdx, genreId, keyId, qualityId, kelvin,
     identitySource, character, action, outfit, location, shotId, rotation, tilt, compId, cineRefLocked, cineRefHandle, cineOutfitRef,
+    cineCharacterId,
     skinTexture, opticalImperfection, antiAI, eyeEngine, expressionPhrase,
     charPlacement, charPx, charPy,
     cineAspectId, prodAspectId, locAspectId, injectProduct, productInteraction, injectedProductId, manualInstruction, creativeContext, contextTypeId, applyBrand,
@@ -635,6 +649,7 @@ export default function CinemaPromptStudio() {
       character: setCharacter, action: setAction, outfit: setOutfit, location: setLocation,
       shotId: setShotId, rotation: setRotation, tilt: setTilt, compId: setCompId,
       cineRefLocked: setCineRefLocked, cineRefHandle: setCineRefHandle, cineOutfitRef: setCineOutfitRef,
+      cineCharacterId: setCineCharacterId,
       photoAspectId: (v) => { setCineAspectId(v); setProdAspectId(v); setLocAspectId(v); },
       cineAspectId: setCineAspectId, prodAspectId: setProdAspectId, locAspectId: setLocAspectId,
       charPlacement: setCharPlacement, charPx: setCharPx, charPy: setCharPy,
@@ -1148,7 +1163,7 @@ export default function CinemaPromptStudio() {
                   </div>
                   <textarea
                     value={character}
-                    onChange={(e) => setCharacter(e.target.value)}
+                    onChange={(e) => { setCharacter(e.target.value); setCineCharacterId(""); }}
                     placeholder="e.g. a woman in her early 30s, warm olive skin, sharp jawline, dark almond eyes, shoulder-length wavy auburn hair, a small mole above her left lip"
                     rows={3}
                     className="w-full rounded p-3 text-sm resize-none"
@@ -1186,7 +1201,7 @@ export default function CinemaPromptStudio() {
                   <div className="flex flex-wrap gap-2">
                     {characters.map((c) => (
                       <div key={c.id} className="flex items-center gap-1">
-                        <CharChip character={c} selected={false} onClick={() => setCharacter(c.text)} />
+                        <CharChip character={c} selected={cineCharacterId === c.id} onClick={() => { setCharacter(c.text); setCineCharacterId(c.id); }} />
                         <button onClick={() => deleteCharacter(c.id)} className="px-1 py-1" title="Delete" style={{ color: COLORS.steel }}><X size={12} /></button>
                       </div>
                     ))}
