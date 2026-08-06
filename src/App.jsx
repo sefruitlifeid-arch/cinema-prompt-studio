@@ -19,7 +19,7 @@ import {
   STYLE_VIBES,
 } from "./constants/data";
 import { anglePhrase, placementPhrase, textPositionPhrase, polar, bladePoints, realismForShot, refAnchor } from "./utils/phrases";
-import { buildProportionClause, bracketForCm } from "./utils/proportion";
+import { buildProportionClause, bracketForCm, parseProportionReply } from "./utils/proportion";
 import { parseSubAreas, compileBlockingClause } from "./utils/blocking";
 import { PRESET_KEY, CHAR_KEY, PRODUCT_KEY, BRAND_KEY, LOCATION_KEY, memStore, store, copyText } from "./utils/storage";
 import { Eyebrow, Panel, Chip, ChipField, Toggle, ExamineHelper } from "./components/primitives";
@@ -171,6 +171,7 @@ export default function CinemaPromptStudio() {
   const [cmHairLength, setCmHairLength] = useState("");
   const [cmHairTexture, setCmHairTexture] = useState("");
   const [cmBuild, setCmBuild] = useState("");
+  const [cmPatchId, setCmPatchId] = useState("");
   const [cmAntiBogel, setCmAntiBogel] = useState(true);
   const [cmHeight, setCmHeight] = useState("");
   const [cmHeightCm, setCmHeightCm] = useState("");
@@ -816,6 +817,21 @@ export default function CinemaPromptStudio() {
     setCmThumb(null);
     setCmThumbNotice("");
     setCmSavingOpen(false);
+  };
+
+  // V4.7 — patch proportions onto an already-saved character (the fix path for
+  // extracted characters saved before V4.7). Spreads the existing record, so no
+  // other field is touched and nothing is re-extracted.
+  const saveProportionsToCharacter = () => {
+    if (!cmPatchId || !cmProportionClause) return;
+    const next = characters.map((c) =>
+      c.id === cmPatchId
+        ? { ...c, proportionClause: cmProportionClause, proportion: { height: cmHeight, build: cmBuild, cm: cmHeightCm } }
+        : c
+    );
+    setCharacters(next);
+    store.write(CHAR_KEY, next);
+    setCmPatchId("");
   };
 
   const handleCmThumbFile = async (e) => {
@@ -2036,40 +2052,6 @@ export default function CinemaPromptStudio() {
                     </div>
                   </div>
                   <div className="mb-3">
-                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Height</div>
-                    <div className="flex flex-wrap">
-                      {HEIGHT_BRACKETS.map((h) => <Chip key={h.id} active={cmHeight === h.id} onClick={() => setCmHeight(cmHeight === h.id ? "" : h.id)}>{h.label}</Chip>)}
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        value={cmHeightCm}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setCmHeightCm(v);
-                          const b = bracketForCm(v);
-                          if (b) setCmHeight(b);
-                        }}
-                        placeholder="cm"
-                        className="rounded px-2 py-1 text-sm"
-                        style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}`, width: 90 }}
-                      />
-                      <span className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>optional — sets the chip automatically</span>
-                    </div>
-                    {cmProportionClause && (
-                      <p className="text-xs mt-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.75 }}>{cmProportionClause}</p>
-                    )}
-                  </div>
-                  <div className="mb-3">
-                    <Toggle
-                      checked={cmAntiBogel}
-                      onChange={setCmAntiBogel}
-                      label="Anti-bogel proportion guard"
-                      description="On: full-body outputs (character sheet, full body + outfit, outfit sheet) carry a negative against chibi proportions, shortened limbs and oversized heads, plus a cross-panel consistency clause. Turn it off for cartoon or fantasy Creative Contexts that want non-realistic proportions."
-                    />
-                  </div>
-                  <div className="mb-3">
                     <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Distinguishing marks (optional)</div>
                     <input value={cmMarks} onChange={(e) => setCmMarks(e.target.value)} placeholder="e.g. a small scar above the left eyebrow, freckles across the nose" className="w-full rounded p-2.5 text-sm" style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}` }}/>
                   </div>
@@ -2102,7 +2084,14 @@ export default function CinemaPromptStudio() {
                   <div className="text-xs mb-1 mt-3" style={{ fontFamily: fBody, color: COLORS.steel }}>Paste extracted identity</div>
                   <textarea
                     value={cmIdentityText}
-                    onChange={(e) => setCmIdentityText(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const parsed = parseProportionReply(v, HEIGHT_BRACKETS, ID_BUILD);
+                      if (!parsed) { setCmIdentityText(v); return; }
+                      if (parsed.height) setCmHeight(parsed.height);
+                      if (parsed.build) setCmBuild(parsed.build);
+                      setCmIdentityText(parsed.cleaned);
+                    }}
                     placeholder="Paste the extracted identity paragraph here"
                     rows={4}
                     className="w-full rounded p-3 text-sm resize-none"
@@ -2112,6 +2101,68 @@ export default function CinemaPromptStudio() {
               )}
               </>
               )}
+
+                {cmSource !== "scratch" && (
+                  <div className="mb-3">
+                    <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Build</div>
+                    <div className="flex flex-wrap">
+                      {ID_BUILD.map((b) => <Chip key={b.id} active={cmBuild === b.id} onClick={() => setCmBuild(cmBuild === b.id ? "" : b.id)}>{b.label}</Chip>)}
+                    </div>
+                  </div>
+                )}
+                {cmPatchId && (
+                  <div className="mb-3 rounded p-2.5" style={{ backgroundColor: COLORS.console, border: `1px solid ${COLORS.amberDim}` }}>
+                    <div className="text-xs mb-2" style={{ fontFamily: fBody, color: COLORS.paper }}>
+                      Setting proportions for <strong>{(characters.find((c) => c.id === cmPatchId) || {}).name || "this character"}</strong> — pick height and build below, then save. Nothing else on the record changes.
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={saveProportionsToCharacter}
+                        disabled={!cmProportionClause}
+                        className="px-2 py-1 rounded text-xs"
+                        style={{ fontFamily: fBody, backgroundColor: cmProportionClause ? COLORS.amber : COLORS.panelBorder, color: cmProportionClause ? COLORS.console : COLORS.steel, fontWeight: 600, opacity: cmProportionClause ? 1 : 0.6 }}
+                      >
+                        Save proportions
+                      </button>
+                      <button onClick={() => setCmPatchId("")} className="px-2 py-1 rounded text-xs" style={{ fontFamily: fBody, color: COLORS.steel, border: `1px solid ${COLORS.panelBorder}` }}>Cancel</button>
+                      {!cmProportionClause && <span className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Pick a height first.</span>}
+                    </div>
+                  </div>
+                )}
+                <div className="mb-3">
+                  <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Height</div>
+                  <div className="flex flex-wrap">
+                    {HEIGHT_BRACKETS.map((h) => <Chip key={h.id} active={cmHeight === h.id} onClick={() => setCmHeight(cmHeight === h.id ? "" : h.id)}>{h.label}</Chip>)}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={cmHeightCm}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setCmHeightCm(v);
+                        const b = bracketForCm(v);
+                        if (b) setCmHeight(b);
+                      }}
+                      placeholder="cm"
+                      className="rounded px-2 py-1 text-sm"
+                      style={{ fontFamily: fBody, backgroundColor: COLORS.console, color: COLORS.paper, border: `1px solid ${COLORS.panelBorder}`, width: 90 }}
+                    />
+                    <span className="text-xs" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>optional — sets the chip automatically</span>
+                  </div>
+                  {cmProportionClause && (
+                    <p className="text-xs mt-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.75 }}>{cmProportionClause}</p>
+                  )}
+                </div>
+                <div className="mb-3">
+                  <Toggle
+                    checked={cmAntiBogel}
+                    onChange={setCmAntiBogel}
+                    label="Anti-bogel proportion guard"
+                    description="On: full-body outputs (character sheet, full body + outfit, outfit sheet) carry a negative against chibi proportions, shortened limbs and oversized heads, plus a cross-panel consistency clause. Turn it off for cartoon or fantasy Creative Contexts that want non-realistic proportions."
+                  />
+                </div>
 
               <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${COLORS.panelBorder}` }}>
                 <div className="flex items-center justify-between mb-2">
@@ -2150,6 +2201,20 @@ export default function CinemaPromptStudio() {
                     {characters.map((c) => (
                       <div key={c.id} className="flex items-center gap-1">
                         <CharChip character={c} selected={false} onClick={() => { setCmIdentityText(c.text); setCmIdentityDirty(cmSource === "scratch"); setCmThumb(c.thumb || null); const p = c.proportion; if (p) { setCmHeight(p.height || ""); setCmBuild(p.build || ""); setCmHeightCm(p.cm || ""); } }} />
+                        <button
+                          onClick={() => {
+                            setCmPatchId(c.id);
+                            const p = c.proportion;
+                            setCmHeight(p ? p.height || "" : "");
+                            setCmBuild(p ? p.build || "" : "");
+                            setCmHeightCm(p ? p.cm || "" : "");
+                          }}
+                          title={c.proportion ? "Edit proportions" : "Set proportions"}
+                          className="px-1.5 py-1 rounded text-xs"
+                          style={{ fontFamily: fBody, color: c.proportion ? COLORS.steel : COLORS.amber, border: `1px solid ${c.proportion ? COLORS.panelBorder : COLORS.amberDim}` }}
+                        >
+                          {c.proportion ? "Edit proportions" : "Set proportions"}
+                        </button>
                         <button onClick={() => deleteCharacter(c.id)} title="Delete" className="px-1 py-1" style={{ color: COLORS.steel }}><X size={12}/></button>
                       </div>
                     ))}

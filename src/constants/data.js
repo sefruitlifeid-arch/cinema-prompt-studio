@@ -75,7 +75,13 @@ export const CONTEXT_TYPES = [
   { id: "fantasy", label: "Fantasy / mythic", phrase: "This is a fantasy illustration of mythical creatures and worlds — imaginative and stylized, non-realistic, with no graphic content." },
 ];
 
-export const EXAMINE_PROMPT = `You are a character identity extractor for photorealistic image prompts. Examine the attached reference photo of a person and write ONE dense paragraph describing ONLY their fixed physical identity — the traits that must stay identical across every future image. Include: apparent age range, ethnicity/skin tone, face shape, jawline, cheekbones, nose shape, lip shape, eye shape and color, eyebrow shape, distinguishing marks (moles, freckles, scars), hair color, length, and texture, and overall build. Do NOT mention clothing, expression, pose, background, lighting, or camera. Write it as a flowing physical description, not a list. Keep it under 90 words.`;
+export const EXAMINE_PROMPT = `You are a character identity extractor for photorealistic image prompts. Examine the attached reference photo of a person and write ONE dense paragraph describing ONLY their fixed physical identity — the traits that must stay identical across every future image. Include: apparent age range, ethnicity/skin tone, face shape, jawline, cheekbones, nose shape, lip shape, eye shape and color, eyebrow shape, distinguishing marks (moles, freckles, scars), hair color, length, and texture, and overall build. Do NOT mention clothing, expression, pose, background, lighting, or camera. Write it as a flowing physical description, not a list. Keep it under 90 words.
+
+Then, on a separate final line after the paragraph, output exactly this and nothing else:
+PROPORTION | <height> | <build>
+where <height> is exactly one of: petite, average, tall, very tall
+and <build> is exactly one of: slim, athletic, average, stocky, heavy-set
+Choose the closest bracket by name. Do NOT estimate a height in centimetres or feet — brackets only.`;
 
 export const REF_EXAMINE_PROMPT = `You are a brand and visual-style extractor for image prompts. Examine the attached reference (a brand asset, thumbnail, or moodboard) and write ONE dense paragraph capturing ONLY its reusable visual style: dominant color palette (name the key hex-like colors), overall mood, typographic feel (weight, serif/sans, case), lighting/finish, and composition tendencies. Do NOT describe the specific subject or one-off content. Keep it under 80 words, as flowing prose I can paste into an image prompt.`;
 

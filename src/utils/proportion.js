@@ -39,3 +39,54 @@ export function buildProportionClause(height, build, cm) {
     .filter(Boolean)
     .join(", ");
 }
+
+// V4.7 — parses the "PROPORTION | <height> | <build>" line the upgraded
+// EXAMINE_PROMPT asks for. Tolerant in the same spirit as parseSubAreas: the reply
+// comes back through a chat model and arrives mangled often enough that strict
+// matching would be useless. Accepts bullets and numbering, "|" or ":" or ","
+// separators, any case, and spaced/hyphenated/run-together spellings
+// ("very tall", "very-tall", "verytall"; "heavy-set", "heavyset", "heavy set").
+//
+// Returns { height, build, cleaned } — `cleaned` is the reply with the PROPORTION
+// line removed, so the identity paragraph never carries the marker into a prompt.
+// Returns null when no usable line is found; the caller then leaves the chips alone.
+const normToken = (s) => (s || "").toLowerCase().replace(/[^a-z]/g, "");
+
+export function parseProportionReply(text, heightBrackets, buildChips) {
+  const lines = (text || "").split(/\r?\n/);
+  const idx = lines.findIndex((l) => /proportion/i.test(l) && normToken(l).length > "proportion".length);
+  if (idx === -1) return null;
+
+  const raw = lines[idx];
+  const body = raw
+    .replace(/^[\s\-*•]+/, "")
+    .replace(/^\d+\s*[.)]\s*/, "")
+    .replace(/proportions?/i, "");
+
+  const tokens = body.split(/[|:,]/).map((t) => normToken(t)).filter(Boolean);
+  if (!tokens.length) return null;
+
+  const heightIds = heightBrackets.map((b) => b.id);
+  const buildIds = buildChips.map((b) => b.id);
+  // Match on the id and on the normalised label, so "very tall" and "heavy-set"
+  // both land even though the ids are "verytall" and "heavyset".
+  const findIn = (list, keyed) => (tok) => {
+    const hit = list.find((o) => normToken(o.id) === tok || normToken(o.label) === tok);
+    return hit && keyed.includes(hit.id) ? hit.id : "";
+  };
+  const asHeight = findIn(heightBrackets, heightIds);
+  const asBuild = findIn(buildChips, buildIds);
+
+  // Positional first — "average" is a valid value in BOTH lists, so order is the
+  // only thing that disambiguates "PROPORTION | average | average".
+  let height = "";
+  let build = "";
+  for (const tok of tokens) {
+    if (!height && asHeight(tok)) { height = asHeight(tok); continue; }
+    if (height && !build && asBuild(tok)) { build = asBuild(tok); }
+  }
+  if (!height && !build) return null;
+
+  const cleaned = lines.filter((_, i) => i !== idx).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return { height, build, cleaned };
+}
