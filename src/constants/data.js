@@ -336,6 +336,15 @@ export const ANTI_TEXT_CLAUSE =
 export const FLAT_GRADE_CLOSE =
   "Background is an even neutral mid-gray seamless, completely flat — one single uniform value corner to corner, no seam line, no gradient, no hotspot, no vignette, no falloff to lighter or darker anywhere in the frame. Relight from scratch overriding any reference lighting: completely flat shadowless illumination — one enormous soft frontal source at camera position wrapping the subject evenly, matched equal fill from camera-left and camera-right at identical intensity, matched fill from above and below, so both sides of the face read at exactly the same brightness. No key-and-fill ratio, no modelling, no shadow side, no cheek triangle, no nose shadow, no under-chin shadow, no rim light, no hair light, no kicker, no specular hotspot. Zero shadow cast onto the background — the backdrop stays clean flat gray behind the entire figure. No contact shadow, no drop shadow, no ambient occlusion anywhere in the frame. Extremely low contrast, even, milky, catalogue-flat. Form is described by bone structure, hair strands, and fabric folds alone, not by light and shadow. Skin reads matte and velvety — zero shine on forehead, nose bridge, cheekbones, temples, and chin, no oily T-zone. Skin renders at its true natural skin tone and wardrobe at its true natural color, warmth preserved and natural against the neutral gray, never pale or washed-out or cool-shifted by the background. Real peach fuzz at the jaw and hairline, real soft fine even pore texture, subsurface scattering reading as semi-translucent biology, never plastic, never waxy AI render, never glass-skin, never harsh — fine flattering texture that keeps the face looking good, no acne, no blemishes, no rough pores. Hair rendered strand by strand with realistic flyaways and baby hairs at the hairline. Fabric with real weave detail, real weight, real drape. Photographed on a 50mm prime, even sharpness, soft natural film grain. Photographed not generated.";
 
+// V4.7 — anti-bogel guard. Deliberately NOT a permanent locked constant like
+// ANTI_TEXT_CLAUSE: it hangs off a toggle (decision B, default ON) so cartoon and
+// fantasy Creative Contexts can ask for non-realistic proportions. The
+// "consistent proportions across all panels" tail is the only thing in the whole
+// prompt set addressing panel-to-panel proportion drift on the 6-panel sheet —
+// do not trim it.
+export const ANTI_BOGEL_CLAUSE =
+  "correct adult head-to-body ratio, no chibi, no shortened limbs, no oversized head, consistent proportions across all panels.";
+
 export const SKIN_CONSISTENCY_CLAUSE =
   "Skin renders identical in value and hue across the face, back, arms, and hands in every panel — never darkened, never tanned, never shifted between panels.";
 

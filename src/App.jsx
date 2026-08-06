@@ -13,6 +13,7 @@ import {
   EMPTY_BRAND,
   CHARMAKER_OUTPUTS, CHARMAKER_EXPRESSIONS_9,
   ANTI_TEXT_CLAUSE, FLAT_GRADE_CLOSE, SKIN_CONSISTENCY_CLAUSE, REALISM_CLOSE, OUTFIT_ANCHOR_CLAUSE, CM_BASELINE_WARDROBE, CM_DETAIL_OPTIONS, SB_LIGHTING,
+  ANTI_BOGEL_CLAUSE,
   ID_AGE, ID_GENDER, ID_SKIN, ID_FACE, ID_EYES, ID_HAIR_COLOR, ID_HAIR_LENGTH, ID_HAIR_TEXTURE, ID_BUILD,
   HEIGHT_BRACKETS,
   STYLE_VIBES,
@@ -169,6 +170,7 @@ export default function CinemaPromptStudio() {
   const [cmHairLength, setCmHairLength] = useState("");
   const [cmHairTexture, setCmHairTexture] = useState("");
   const [cmBuild, setCmBuild] = useState("");
+  const [cmAntiBogel, setCmAntiBogel] = useState(true);
   const [cmHeight, setCmHeight] = useState("");
   const [cmHeightCm, setCmHeightCm] = useState("");
   const [cmMarks, setCmMarks] = useState("");
@@ -548,9 +550,10 @@ export default function CinemaPromptStudio() {
         `A 6-panel character reference sheet on a single wide 16:9 canvas with an asymmetric layout: the LEFT HALF is two tall full-height columns side by side (Panel 1 and Panel 2, each a full-height portrait cell); the RIGHT HALF is a 2x2 grid of four equal square cells (Panels 3-6). Panels separated by hairline gutters in the exact same mid-gray tone as the backdrop, no white lines, no visible borders. Each panel shows the same single character — ${identityBlock} wearing ${wardrobe}.`,
         panels,
         `${flatUniform("six")} Sharp focus across every panel. Identical character identity locked across all six panels — same face, same skin, same hair, same wardrobe, same accessories, same proportions in every cell.`,
+        cmAntiBogel ? ANTI_BOGEL_CLAUSE : "",
         SKIN_CONSISTENCY_CLAUSE,
         ANTI_TEXT_CLAUSE,
-      ].join("\n\n");
+      ].filter(Boolean).join("\n\n");
     }
 
     if (output === "fullbody") {
@@ -561,8 +564,9 @@ export default function CinemaPromptStudio() {
         `The character wears ${outfitLine}, head to toe.`,
         "Standing angled slightly from camera, weight shifted naturally, head level, neutral relaxed expression, eyes to camera. Framed full body from head to just below the footwear.",
         FLAT_GRADE_CLOSE,
+        cmAntiBogel ? ANTI_BOGEL_CLAUSE : "",
         ANTI_TEXT_CLAUSE,
-      ].join(" ");
+      ].filter(Boolean).join(" ");
     }
 
     if (output === "outfitsheet") {
@@ -580,13 +584,14 @@ export default function CinemaPromptStudio() {
         panels,
         "The clothing, fabric, colors and details must be pixel-consistent across all panels.",
         flatUniform("three"),
+        cmAntiBogel ? ANTI_BOGEL_CLAUSE : "",
         SKIN_CONSISTENCY_CLAUSE,
         ANTI_TEXT_CLAUSE,
-      ].join("\n\n");
+      ].filter(Boolean).join("\n\n");
     }
 
     return null;
-  }, [cmOutput, cmIdentityText, cmRefLocked, cmRefHandle, cmBaseGender, cmDetail, cmNeckline, cmVibe, cmOutfit]);
+  }, [cmOutput, cmIdentityText, cmRefLocked, cmRefHandle, cmBaseGender, cmDetail, cmNeckline, cmVibe, cmOutfit, cmAntiBogel]);
 
   const contextClause = creativeContext && contextType ? contextType.phrase : "";
   const basePrompt = mode === "cinema" ? cinemaPrompt : mode === "product" ? productPrompt : mode === "location" ? locationPrompt : mode === "assemble" ? assemblePrompt : mode === "charmaker" ? characterPrompt : mode === "blocking" ? (blClause || null) : designPrompt;
@@ -615,7 +620,7 @@ export default function CinemaPromptStudio() {
     designRef, brandFontField, thumbTypeId, textBlocks,
     sbCharacterId, sbProductId, sbLocationId, sbTimeOfDay, sbWeather, sbLighting, sbDirection, sbAspect, sbRefLocked, sbRefHandle, sbFrames,
     cmOutput, cmAge, cmGender, cmSkin, cmFace, cmEyes, cmHairColor, cmHairLength, cmHairTexture, cmBuild,
-    cmHeight, cmHeightCm,
+    cmHeight, cmHeightCm, cmAntiBogel,
     cmMarks, cmIdentityText, cmIdentityDirty, cmOutfit, cmVibe, cmSource,
     cmBaseGender, cmRefLocked, cmRefHandle, cmDetail, cmNeckline,
     blLocationId, cineBlockingId, cineLocationId,
@@ -653,6 +658,7 @@ export default function CinemaPromptStudio() {
       cmFace: setCmFace, cmEyes: setCmEyes, cmHairColor: setCmHairColor,
       cmHairLength: setCmHairLength, cmHairTexture: setCmHairTexture, cmBuild: setCmBuild,
       cmHeight: setCmHeight, cmHeightCm: setCmHeightCm,
+      cmAntiBogel: setCmAntiBogel,
       cmMarks: setCmMarks, cmIdentityText: setCmIdentityText, cmIdentityDirty: setCmIdentityDirty,
       cmOutfit: setCmOutfit, cmVibe: setCmVibe, cmSource: setCmSource,
       cmBaseGender: setCmBaseGender, cmRefLocked: setCmRefLocked, cmRefHandle: setCmRefHandle, cmDetail: setCmDetail, cmNeckline: setCmNeckline,
@@ -2039,6 +2045,14 @@ export default function CinemaPromptStudio() {
                     {cmProportionClause && (
                       <p className="text-xs mt-2" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.75 }}>{cmProportionClause}</p>
                     )}
+                  </div>
+                  <div className="mb-3">
+                    <Toggle
+                      checked={cmAntiBogel}
+                      onChange={setCmAntiBogel}
+                      label="Anti-bogel proportion guard"
+                      description="On: full-body outputs (character sheet, full body + outfit, outfit sheet) carry a negative against chibi proportions, shortened limbs and oversized heads, plus a cross-panel consistency clause. Turn it off for cartoon or fantasy Creative Contexts that want non-realistic proportions."
+                    />
                   </div>
                   <div className="mb-3">
                     <div className="text-xs mb-1" style={{ fontFamily: fBody, color: COLORS.steel, opacity: 0.7 }}>Distinguishing marks (optional)</div>
