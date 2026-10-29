@@ -7,7 +7,8 @@ Ranked. Each item lists reason, complexity, and dependencies.
 ## Recently shipped
 
 **V4.7 — body proportion control + anti-distortion.** Shipped 7 Aug 2026 as four independent
-commits: `a5208a7` (V4.7a), `95f744d` (V4.7b), `6cf2dd5` (V4.7c), `380d805` (V4.7d). See item 4
+commits: `a5208a7` (V4.7a), `95f744d` (V4.7b), `6cf2dd5` (V4.7c), `380d805` (V4.7d), and
+verified live on Pages the same day (deploy delayed by a GitHub Actions outage). See item 4
 below for the locked decisions and, importantly, the list of places where the shipped code
 deliberately differs from the written spec.
 

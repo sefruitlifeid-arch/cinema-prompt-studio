@@ -192,6 +192,8 @@ in §6b and `docs/TODO.md` item 4.
 - **`6cf2dd5` — V4.7c: Cinema anti-distortion guard.** `ANTI_DISTORTION_CLAUSE` injected when the
   camera is off eye level, plus the `cineCharacterId` link that carries `proportionClause` into
   Cinema even when the reference toggle is ON — the gap that caused the original bug.
+- **Live on Pages 7 Aug 2026** after a GitHub Actions outage delayed the deploy; bundle
+  `index-Dxp185m2.js` verified to contain all V4.7 strings. See `docs/HANDOFF.md` *Deploy notes*.
 - **`380d805` — V4.7d: Examine + "Set proportions".** `EXAMINE_PROMPT` now asks for a trailing
   `PROPORTION | <height> | <build>` line; `parseProportionReply` reads it tolerantly and strips
   the marker. "Set proportions" patches already-saved characters without re-extracting.

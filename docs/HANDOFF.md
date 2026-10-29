@@ -144,6 +144,25 @@ see `TODO.md` item 4 for the locked set and `PROGRESS.md` §6b for the rationale
 
 ---
 
+## Deploy notes (learned 7 Aug 2026)
+
+- **Push is not live.** GitHub Actions builds and deploys Pages after each push to `main`. A
+  successful `git push` only means the code is on GitHub. To confirm it is live, compare the
+  bundle name on the site with the local build:
+  `curl -s https://sefruitlifeid-arch.github.io/cinema-prompt-studio/ | grep -oE 'assets/index-[^"]+\.js'`
+- **V4.7 deploy history.** The 6–7 Aug pushes hit a GitHub Actions + Pages major outage
+  ("The job was not acquired by Runner of type hosted"): runs queued 11–16 min, then were
+  cancelled or failed. Nothing was wrong with the code or the workflow. After Actions recovered,
+  run `31125907600` was re-run and succeeded; the live bundle `index-Dxp185m2.js` was verified
+  to contain every V4.7 string. When a deploy fails, check https://www.githubstatus.com first,
+  then `gh run view <id>` — and re-check a few minutes later, since GitHub can create a run for
+  a push well after the push itself.
+- **Chat-side project knowledge.** A snapshot folder for claude.ai Projects lives at
+  `~/Documents/cps-chat-project/` (outside the repo, snapshot `25825bf`). It goes stale on
+  every release — refresh it after shipping. `App.jsx` is deliberately excluded.
+
+---
+
 ## Important warnings
 
 - **Do not "clean up" the long prompt constants.** `FLAT_GRADE_CLOSE` (~250 words in
